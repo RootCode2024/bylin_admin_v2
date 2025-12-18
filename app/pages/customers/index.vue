@@ -1,52 +1,38 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
 import { upperFirst } from 'scule'
-import type { Customer } from '~/types'
+import type { Customer } from '~/types/customer'
+import type { Table as TanstackTable } from '@tanstack/table-core'
 
-// --- Imports & Composants ---
+// ========================================
+// Composables
+// ========================================
 const UAvatar = resolveComponent('UAvatar')
-const UButton = resolveComponent('UButton')
 const UBadge = resolveComponent('UBadge')
-const UDropdownMenu = resolveComponent('UDropdownMenu')
 const UCheckbox = resolveComponent('UCheckbox')
+const UButton = resolveComponent('UButton')
+const UDropdownMenu = resolveComponent('UDropdownMenu')
 
 const toast = useToast()
-const store = useCustomerStore()
-const router = useRouter() // Pour la navigation vers les détails
+const router = useRouter()
 
-// --- Configuration Table ---
-const table = useTemplateRef('table')
-const rowSelection = ref({})
+const {
+  customers,
+  loading,
+  pagination,
+  filters,
+  fetchCustomers,
+  setPage,
+  setSearch,
+  setStatus
+} = useCustomers()
 
-// Liste des statuts pour le filtre (avec libellés FR)
-const statusOptions = [
-  { label: 'Tous', value: 'all' },
-  { label: 'Actif', value: 'active' },
-  { label: 'Inactif', value: 'inactive' },
-  { label: 'Abonné', value: 'subscribed' },
-  { label: 'Désabonné', value: 'unsubscribed' },
-  { label: 'Rejeté', value: 'bounced' },
-  { label: 'Suspendu', value: 'suspended' }
-]
+// ========================================
+// Configuration Table
+// ========================================
+const table = useTemplateRef<{ tableApi: TanstackTable<Customer> }>('table')
 
-// Mapping des couleurs pour l'affichage
-const statusColors: Record<string, string> = {
-  active: 'success',
-  subscribed: 'success',
-  inactive: 'neutral',
-  unsubscribed: 'neutral',
-  suspended: 'warning',
-  bounced: 'error'
-}
-
-// Fonction pour naviguer vers les détails
-function navigateToDetails(id: string) {
-  // Adapter selon votre route réelle, ex: /admin/customers/123
-  // router.push(`/customers/${id}`)
-  toast.add({ title: 'Navigation', description: `Vers la fiche client ${id}` })
-}
-
-// --- Définition des Colonnes ---
+// Configuration des colonnes (Typage strict)
 const columns: TableColumn<Customer>[] = [
   {
     id: 'select',
@@ -59,20 +45,19 @@ const columns: TableColumn<Customer>[] = [
       'modelValue': row.getIsSelected(),
       'onUpdate:modelValue': (value: boolean) => row.toggleSelected(!!value),
       'ariaLabel': 'Sélectionner la ligne'
-    })
+    }),
+    enableHiding: false
   },
   {
     accessorKey: 'id',
     header: 'ID',
-    cell: ({ row }) => h('span', { class: 'font-mono text-xs text-muted' }, row.original.id.substring(0, 8) + '...')
+    cell: ({ row }) => h('span', { class: 'font-mono text-xs text-gray-500' }, row.original.id.substring(0, 8))
   },
   {
     accessorKey: 'name',
     header: 'Client',
     cell: ({ row }) => {
       const fullName = `${row.original.first_name} ${row.original.last_name}`
-
-      // On rend le nom et l'avatar cliquables pour aller aux détails
       return h('div', {
         class: 'flex items-center gap-3 cursor-pointer group',
         onClick: () => navigateToDetails(row.original.id)
@@ -80,12 +65,12 @@ const columns: TableColumn<Customer>[] = [
         h(UAvatar, {
           src: row.original.avatar_url,
           alt: fullName,
-          size: 'lg',
-          class: 'group-hover:ring-2 ring-primary-500/50 transition-all'
+          size: 'md',
+          class: 'ring-1 ring-gray-200 dark:ring-gray-800 transition-transform group-hover:scale-105'
         }),
-        h('div', undefined, [
-          h('p', { class: 'font-medium text-highlighted group-hover:text-primary-500 transition-colors' }, fullName),
-          h('p', { class: 'text-xs text-muted' }, row.original.email)
+        h('div', [
+          h('p', { class: 'font-medium text-gray-900 dark:text-white group-hover:text-primary-500 transition-colors' }, fullName),
+          h('p', { class: 'text-xs text-gray-500' }, row.original.email)
         ])
       ])
     }
@@ -95,20 +80,17 @@ const columns: TableColumn<Customer>[] = [
     header: 'Statut',
     cell: ({ row }) => {
       const status = row.original.status
-      const color = statusColors[status] || 'neutral'
-
-      // Traduction simple pour l'affichage dans le badge
-      const frStatus = statusOptions.find(o => o.value === status)?.label || status
-
       return h(UBadge, {
         class: 'capitalize',
         variant: 'subtle',
-        color: color as any
-      }, () => frStatus)
+        color: statusColors[status] || 'neutral',
+        size: 'sm'
+      }, () => statusLabels[status] || status)
     }
   },
   {
     id: 'actions',
+    enableHiding: false,
     cell: ({ row }) => h(
       'div',
       { class: 'text-right' },
@@ -119,27 +101,76 @@ const columns: TableColumn<Customer>[] = [
         icon: 'i-lucide-ellipsis-vertical',
         color: 'neutral',
         variant: 'ghost',
-        class: 'ml-auto cursor-pointer'
+        size: 'sm'
       }))
     )
   }
 ]
 
-// Actions du menu déroulant
+// ========================================
+// État Local & Logique
+// ========================================
+const rowSelection = ref<Record<string, boolean>>({})
+const localSearch = ref(filters.value.search)
+const localStatus = ref(filters.value.status)
+
+// Gestion Modale Suppression
+const isDeleteModalOpen = ref(false)
+const idsToDelete = ref<string[]>([])
+
+// Mapping des statuts
+const statusLabels: Record<string, string> = {
+  all: 'Tous',
+  active: 'Actif',
+  inactive: 'Inactif',
+  subscribed: 'Abonné',
+  unsubscribed: 'Désabonné',
+  bounced: 'Rejeté',
+  suspended: 'Suspendu'
+}
+
+const statusColors: Record<string, string> = {
+  active: 'success',
+  subscribed: 'success',
+  inactive: 'neutral',
+  unsubscribed: 'neutral',
+  suspended: 'warning',
+  bounced: 'error'
+}
+
+// ========================================
+// Actions
+// ========================================
+function navigateToDetails(id: string) {
+  router.push(`/customers/${id}`)
+}
+
+// Ouvre la modale de suppression
+function confirmDelete(ids: string[]) {
+  idsToDelete.value = ids
+  isDeleteModalOpen.value = true
+}
+
+// Callback après suppression réussie
+function onDeleteSuccess() {
+  rowSelection.value = {}
+  // Le composable s'occupe déjà de refreshCustomers normalement
+}
+
 function getRowItems(customer: Customer) {
   return [
     [
       {
-        label: 'Voir les détails',
+        label: 'Voir détails',
         icon: 'i-lucide-eye',
-        click: () => navigateToDetails(customer.id)
+        onSelect: () => navigateToDetails(customer.id)
       },
       {
-        label: 'Copier l\'ID',
+        label: 'Copier ID',
         icon: 'i-lucide-copy',
-        click: () => {
+        onSelect: () => {
           navigator.clipboard.writeText(customer.id)
-          toast.add({ title: 'Succès', description: 'ID copié dans le presse-papier' })
+          toast.add({ title: 'ID copié', color: 'success', icon: 'i-lucide-check' })
         }
       }
     ],
@@ -147,51 +178,42 @@ function getRowItems(customer: Customer) {
       label: 'Supprimer',
       icon: 'i-lucide-trash',
       color: 'error',
-      click: () => store.deleteCustomers([customer.id])
+      onSelect: () => confirmDelete([customer.id])
     }]
   ]
 }
 
-// --- Logique & Watchers ---
-
-// Computed pour gérer la pagination (1-index vers 0-index)
-const currentPage = computed({
-  get: () => store.pagination.pageIndex + 1,
-  set: (value) => { store.pagination.pageIndex = value - 1 }
-})
-
+// ========================================
+// Computed & Watchers
+// ========================================
 const selectedIds = computed(() => {
-  if (!table.value?.tableApi) return []
-  return table.value.tableApi.getSelectedRowModel().rows.map((row: any) => row.original.id)
+  const api = table.value?.tableApi
+  if (!api) return []
+  return api.getSelectedRowModel().rows.map(row => row.original.id)
 })
 
-// Chargement initial
-onMounted(() => {
-  store.fetchCustomers()
+const currentPage = computed({
+  get: () => pagination.value.pageIndex + 1,
+  set: (val) => setPage(val - 1)
 })
 
-// Surveillance pour recharger les données
-watch(() => store.pagination.pageIndex, () => store.fetchCustomers())
-watch(() => store.pagination.pageSize, () => store.fetchCustomers())
-
-// Recherche avec Debounce
-watchDebounced(
-  () => store.filters.search,
-  () => { store.pagination.pageIndex = 0; store.fetchCustomers() },
-  { debounce: 500, maxWait: 1000 }
+// Colonnes affichables pour le menu "Affichage"
+const visibleColumns = computed(() =>
+  table.value?.tableApi?.getAllColumns().filter(c => c.getCanHide()) || []
 )
 
-// Filtre Statut
-watch(() => store.filters.status, () => {
-  store.pagination.pageIndex = 0
-  store.fetchCustomers()
+watchDebounced(localSearch, (val) => setSearch(val), { debounce: 400 })
+watch(localStatus, (val) => setStatus(val))
+
+onMounted(() => {
+  fetchCustomers()
 })
 </script>
 
 <template>
-  <UDashboardPanel id="customers">
+  <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Clients">
+      <UDashboardNavbar title="Clients" badge="4.2">
         <template #right>
           <CustomersAddModal />
         </template>
@@ -199,102 +221,91 @@ watch(() => store.filters.status, () => {
     </template>
 
     <template #body>
-      <!-- Barre d'outils -->
-      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <!-- Filtres à gauche -->
+      <!-- Toolbar -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-2 w-full sm:w-auto">
-          <UInput
-            v-model="store.filters.search"
-            class="w-full sm:max-w-xs"
-            icon="i-lucide-search"
-            placeholder="Rechercher (nom, email)..."
-          />
+          <UInput v-model="localSearch" icon="i-lucide-search" placeholder="Rechercher un client..."
+            class="w-full sm:w-72" :ui="{ trailing: 'pointer-events-auto' }">
+            <template #trailing v-if="localSearch">
+              <UButton color="neutral" variant="link" icon="i-lucide-x" :padded="false" @click="localSearch = ''" />
+            </template>
+          </UInput>
 
-          <USelect
-            v-model="store.filters.status"
-            :items="statusOptions"
-            option-attribute="label"
-            value-attribute="value"
-            class="min-w-[140px]"
-            placeholder="Statut"
-          />
+          <USelectMenu v-model="localStatus"
+            :items="Object.entries(statusLabels).map(([v, l]) => ({ label: l, value: v }))" value-key="value"
+            class="w-40" />
         </div>
 
-        <!-- Actions de masse et affichage à droite -->
         <div class="flex items-center gap-2">
-          <!-- Modal de suppression multiple -->
-          <CustomersDeleteModal
-            v-if="selectedIds.length > 0"
-            :count="selectedIds.length"
-            :ids="selectedIds"
-            @success="rowSelection = {}"
-          />
+          <!-- Action de masse avec transition -->
+          <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 translate-y-1"
+            enter-to-class="opacity-100 translate-y-0" leave-active-class="transition duration-150 ease-in"
+            leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
+            <UButton v-if="selectedIds.length > 0" color="error" variant="soft" icon="i-lucide-trash-2"
+              :label="`Supprimer (${selectedIds.length})`" @click="confirmDelete(selectedIds)" />
+          </Transition>
 
-          <!-- Menu d'affichage des colonnes -->
-          <UDropdownMenu
-            :items="
-              table?.tableApi
-                ?.getAllColumns()
-                .filter((column: any) => column.getCanHide())
-                .map((column: any) => ({
-                  label: upperFirst(column.id === 'name' ? 'Nom' : column.id), // Petite trad manuelle
-                  type: 'checkbox' as const,
-                  checked: column.getIsVisible(),
-                  onUpdateChecked(checked: boolean) {
-                    table?.tableApi?.getColumn(column.id)?.toggleVisibility(!!checked)
-                  },
-                  onSelect(e?: Event) { e?.preventDefault() }
-                }))
-            "
-            :content="{ align: 'end' }"
-          >
-            <UButton
-              label="Affichage"
-              color="neutral"
-              variant="outline"
-              trailing-icon="i-lucide-settings-2"
-              class="cursor-pointer"
-            />
+          <!-- Menu Colonnes -->
+          <UDropdownMenu :items="visibleColumns.map(col => ({
+            label: upperFirst(col.id === 'name' ? 'Client' : col.id),
+            type: 'checkbox',
+            checked: col.getIsVisible(),
+            onUpdateChecked: (v: boolean) => col.toggleVisibility(!!v)
+          }))" :content="{ align: 'end' }">
+            <UButton icon="i-lucide-sliders-horizontal" color="neutral" variant="outline" label="Affichage" />
           </UDropdownMenu>
         </div>
       </div>
 
-      <!-- Tableau de données -->
-      <UTable
-        ref="table"
-        v-model:row-selection="rowSelection"
-        :data="store.customers"
-        :columns="columns"
-        :loading="store.loading"
-        class="flex-1"
-        :ui="{
-          th: 'py-3 font-semibold text-gray-900 dark:text-white',
-          td: 'py-3',
-          emptyState: 'flex flex-col items-center justify-center p-6 gap-3'
-        }"
-      >
-        <template #empty-state>
-           <div class="text-center text-muted">
-             <div class="i-lucide-users text-4xl mb-2 mx-auto" />
-             <p>Aucun client trouvé.</p>
-           </div>
-        </template>
-      </UTable>
+      <!-- Tableau avec Skeleton et Empty State -->
+      <div
+        class="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-900 flex-1 flex flex-col">
+        <UTable ref="table" v-model:row-selection="rowSelection" :data="customers as any" :columns="columns"
+          :loading="loading" class="flex-1">
+          <!-- Loading State (Skeleton) -->
+          <template #loading-state>
+            <div class="p-4 space-y-4">
+              <div v-for="i in 5" :key="i" class="flex items-center gap-4">
+                <USkeleton class="h-4 w-4 rounded" />
+                <USkeleton class="h-10 w-10 rounded-full" />
+                <div class="space-y-2 flex-1">
+                  <USkeleton class="h-4 w-[30%]" />
+                  <USkeleton class="h-3 w-[20%]" />
+                </div>
+                <USkeleton class="h-6 w-20 rounded-full" />
+                <USkeleton class="h-8 w-8 rounded-full ml-auto" />
+              </div>
+            </div>
+          </template>
 
-      <!-- Pied de page / Pagination -->
-      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-default pt-4 mt-auto">
-        <div class="text-sm text-muted">
-           Total : <span class="font-medium text-highlighted">{{ store.pagination.total }}</span> client(s)
-        </div>
-
-        <UPagination
-          v-model="currentPage"
-          :page-count="store.pagination.pageSize"
-          :total="store.pagination.total"
-          :max="5"
-          :ui="{ wrapper: 'flex items-center gap-1' }"
-        />
+          <!-- Empty State -->
+          <template #empty-state>
+            <div class="flex flex-col items-center justify-center py-16 text-center">
+              <div class="p-4 rounded-full bg-gray-50 dark:bg-gray-800/50 mb-3">
+                <UIcon name="i-lucide-users" class="w-8 h-8 text-gray-400" />
+              </div>
+              <p class="text-base font-medium text-gray-900 dark:text-white">Aucun client trouvé</p>
+              <p class="text-sm text-gray-500 mt-1" v-if="localSearch || localStatus !== 'all'">
+                Essayez de modifier vos filtres de recherche.
+              </p>
+              <UButton v-if="localSearch || localStatus !== 'all'" label="Réinitialiser les filtres" variant="link"
+                color="primary" class="mt-2" @click="{ localSearch = ''; localStatus = 'all' }" />
+            </div>
+          </template>
+        </UTable>
       </div>
+
+      <!-- Pagination -->
+      <div class="flex items-center justify-between mt-4 border-t border-gray-200 dark:border-gray-800 pt-4">
+        <span class="text-sm text-gray-500 dark:text-gray-400">
+          Total : <span class="font-medium text-gray-900 dark:text-white">{{ pagination.total }}</span> client(s)
+        </span>
+        <UPagination v-model:page="currentPage" :total="pagination.total" :items-per-page="pagination.pageSize"
+          :sibling-count="1" />
+      </div>
+
+      <!-- Modale de suppression (Déportée) -->
+      <CustomersDeleteModal v-model:open="isDeleteModalOpen" :ids="idsToDelete" @success="onDeleteSuccess" />
     </template>
   </UDashboardPanel>
 </template>

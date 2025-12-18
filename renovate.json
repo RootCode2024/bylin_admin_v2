@@ -3,11 +3,11 @@
     "github>nuxt/renovate-config-nuxt"
   ],
   "lockFileMaintenance": {
-    "enabled": true
+    "enabled": true,
+    "schedule": ["every weekend"]
   },
   "packageRules": [{
     "matchDepTypes": ["resolutions"],
     "enabled": false
-  }],
-  "postUpdateOptions": ["pnpmDedupe"]
+  }]
 }
