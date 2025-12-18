@@ -1,47 +1,84 @@
-// 1. Définition d'un client
 export interface Customer {
-  id: string
-  first_name: string
-  last_name: string
-  full_name?: string // Optionnel
-  email: string
-  phone?: string
-  status: 'active' | 'inactive' | 'suspended' | 'bounced' | 'subscribed' | 'unsubscribed'
-  avatar?: string
-  avatar_url?: string
-  location?: string
-  created_at: string
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string | undefined;
+  status: "active" | "inactive" | "suspended";
+  date_of_birth?: string | null;
+  gender?: "male" | "female" | "other" | null;
+  avatar?: string | null;
+  avatar_url?: string | undefined;
+  preferences?: Record<string, any>;
+  oauth_provider?: string | null;
+  oauth_provider_id?: string | null;
+  email_verified_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+
+  // Relations (si chargées)
+  addresses?: Address[];
+  roles?: Role[];
 }
 
-// 2. Structure standard de la pagination Laravel (ce qui est DANS 'data')
+export interface Address {
+  id: string;
+  customer_id: string;
+  type: "shipping" | "billing";
+  is_default: boolean;
+  address_line_1: string;
+  address_line_2?: string | null;
+  city: string;
+  state?: string | null;
+  postal_code: string;
+  country: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Role {
+  id: number;
+  name: string;
+  guard_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface LaravelPaginator<T> {
-  current_page: number
-  data: T[] // C'est ici que se trouve ton tableau de clients
-  first_page_url: string
-  from: number
-  last_page: number
-  last_page_url: string
-  links: Array<{ url: string | null; label: string; active: boolean }>
-  next_page_url: string | null
-  path: string
-  per_page: number
-  prev_page_url: string | null
-  to: number
-  total: number
+  data: T[];
+  current_page: number;
+  first_page_url: string;
+  from: number;
+  last_page: number;
+  last_page_url: string;
+  links: PaginationLink[];
+  next_page_url: string | null;
+  path: string;
+  per_page: number;
+  prev_page_url: string | null;
+  to: number;
+  total: number;
 }
 
-// 3. Réponse globale de ton API (ApiController)
+export interface PaginationLink {
+  url: string | null;
+  label: string;
+  active: boolean;
+}
+
 export interface ApiResponse<T> {
-  success: boolean
-  message: string
-  data: T
-  errors?: Record<string, string[]>
+  success: boolean;
+  message: string;
+  data: T;
 }
 
-// 4. Filtres (utilisé par le store)
-export interface CustomerFilters {
-  search: string
-  status: string
-  page: number
-  per_page: number
+export interface CustomerStatistics {
+  total: number;
+  active: number;
+  inactive: number;
+  suspended: number;
+  trashed: number;
+  verified: number;
+  with_oauth: number;
 }

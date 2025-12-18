@@ -20,6 +20,7 @@
     "@unovis/vue": "^1.6.2",
     "@vueuse/nuxt": "^13.9.0",
     "date-fns": "^4.1.0",
+    "libphonenumber-js": "^1.12.31",
     "nuxt": "^4.2.2",
     "nuxt-auth-sanctum": "^2.0.0",
     "pinia": "^3.0.4",

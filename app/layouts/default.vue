@@ -3,6 +3,7 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 
 const route = useRoute()
 const toast = useToast()
+const { stats, fetchStats } = useDashboard()
 
 const open = ref(false)
 
@@ -11,7 +12,8 @@ const closeMenu = () => {
   open.value = false
 }
 
-const links = [
+// Utilise computed pour la réactivité
+const links = computed(() => [
   // GROUPE 1 : PRINCIPAL & VENTES
   [{
     label: 'Tableau de bord',
@@ -20,14 +22,15 @@ const links = [
     onSelect: closeMenu
   }, {
     label: 'Commandes',
-    icon: 'i-lucide-shopping-bag', // Correspond à apiResource('orders')
+    icon: 'i-lucide-shopping-bag',
     to: '/orders',
-    badge: '2', // À dynamiser plus tard avec le backend
+    badge: stats.value.orders > 0 ? stats.value.orders.toString() : undefined,
     onSelect: closeMenu
   }, {
     label: 'Clients',
-    icon: 'i-lucide-users', // Correspond à apiResource('customers')
+    icon: 'i-lucide-users',
     to: '/customers',
+    badge: stats.value.customers > 0 ? stats.value.customers.toString() : undefined,
     onSelect: closeMenu
   }],
 
@@ -36,7 +39,7 @@ const links = [
     label: 'Catalogue',
     icon: 'i-lucide-tag',
     defaultOpen: true,
-    type: 'trigger', // Menu déroulant pour tout ce qui touche aux produits
+    type: 'trigger',
     children: [{
       label: 'Produits',
       to: '/products',
@@ -55,16 +58,16 @@ const links = [
       to: '/products/attributes',
       onSelect: closeMenu
     }, {
-      label: 'Authenticité & QR', // Correspond à prefix('authenticity')
+      label: 'Authenticité & QR',
       to: '/products/authenticity',
       onSelect: closeMenu
     }, {
-      label: 'Précommandes', // Correspond à prefix('preorder')
+      label: 'Précommandes',
       to: '/products/preorders',
       onSelect: closeMenu
     }]
   }, {
-    label: 'Inventaire', // Correspond à prefix('inventory')
+    label: 'Inventaire',
     icon: 'i-lucide-boxes',
     to: '/inventory',
     children: [{
@@ -85,24 +88,25 @@ const links = [
   // GROUPE 3 : MARKETING & FEEDBACK
   [{
     label: 'Promotions',
-    icon: 'i-lucide-percent', // Correspond à apiResource('promotions')
+    icon: 'i-lucide-percent',
     to: '/promotions',
     onSelect: closeMenu
   }, {
     label: 'Avis Clients',
-    icon: 'i-lucide-star', // Correspond à apiResource('reviews')
+    icon: 'i-lucide-star',
     to: '/reviews',
+    badge: stats.value.reviews > 0 ? stats.value.reviews.toString() : undefined,
     onSelect: closeMenu
   }],
 
   // GROUPE 4 : ADMINISTRATION & CONFIGURATION
   [{
     label: 'Livraison',
-    icon: 'i-lucide-truck', // Correspond à apiResource('shipping-methods')
+    icon: 'i-lucide-truck',
     to: '/shipping',
     onSelect: closeMenu
   }, {
-    label: 'Équipe', // Correspond à apiResource('users') - TA DEMANDE SPÉCIFIQUE
+    label: 'Équipe',
     icon: 'i-lucide-shield-check',
     to: '/settings/members',
     children: [{
@@ -121,20 +125,28 @@ const links = [
     to: '/settings',
     onSelect: closeMenu
   }]
-] satisfies NavigationMenuItem[][]
+] satisfies NavigationMenuItem[][])
 
-// Mise à jour de la recherche pour inclure tous les nouveaux liens
+// Helper pour vérifier si un item a des enfants
+const hasChildren = (item: any): item is { children: NavigationMenuItem[] } => {
+  return 'children' in item && Array.isArray(item.children)
+}
+
+// Mise à jour de la recherche
 const groups = computed(() => [{
   id: 'links',
   label: 'Navigation',
-  items: links.flat().flatMap(item => {
-    // Si l'item a des enfants, on les ajoute à la recherche, sinon on ajoute l'item lui-même
-    return item.children ? item.children : item
+  items: links.value.flat().flatMap(item => {
+    return hasChildren(item) ? item.children : [item]
   })
 }])
 
+// Charger les stats au montage
 onMounted(async () => {
-  // Gestion du cookie (inchangé)
+  // Charger les statistiques pour les badges
+  await fetchStats()
+
+  // Gestion du cookie
   const cookie = useCookie('cookie-consent')
   if (cookie.value === 'accepted') return
 
@@ -158,35 +170,19 @@ onMounted(async () => {
 
 <template>
   <UDashboardGroup unit="rem">
-    <UDashboardSidebar
-      id="default"
-      v-model:open="open"
-      collapsible
-      resizable
-      class="bg-elevated/25"
-      :ui="{ footer: 'lg:border-t lg:border-default' }"
-    >
+    <UDashboardSidebar id="default" v-model:open="open" collapsible resizable class="bg-elevated/25"
+      :ui="{ footer: 'lg:border-t lg:border-default' }">
       <template #header="{ collapsed }">
-        <!-- Tu pourras remplacer ceci par ton Logo -->
         <TeamsMenu :collapsed="collapsed" />
       </template>
 
       <template #default="{ collapsed }">
         <UDashboardSearchButton :collapsed="collapsed" class="bg-transparent ring-default" />
 
-        <!-- Boucle pour afficher les différents groupes de menu séparés par des espaces -->
         <div class="flex flex-col gap-4 overflow-y-auto custom-scrollbar flex-1">
-          <UNavigationMenu
-            v-for="(group, index) in links"
-            :key="index"
-            :collapsed="collapsed"
-            :items="group"
-            orientation="vertical"
-            tooltip
-            popover
-          />
+          <UNavigationMenu v-for="(group, index) in links" :key="index" :collapsed="collapsed" :items="group"
+            orientation="vertical" tooltip popover />
         </div>
-
       </template>
 
       <template #footer="{ collapsed }">
@@ -203,7 +199,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-/* Petit fix pour le scroll dans la sidebar si le menu est très long */
 .custom-scrollbar {
   scrollbar-width: thin;
 }

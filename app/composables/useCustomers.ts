@@ -1,24 +1,27 @@
 import type { Customer, LaravelPaginator, ApiResponse } from "~/types/customer";
 
 /**
- * Composable de gestion des clients
+ * Composable de gestion des clients - Version complète
  */
 export const useCustomers = () => {
   const client = useSanctumClient();
   const toast = useToast();
 
-  // État partagé entre composants
+  // État partagé
   const customers = useState<Customer[]>("customers", () => []);
   const loading = useState<boolean>("customers:loading", () => false);
   const pagination = useState("customers:pagination", () => ({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 15,
     total: 0,
   }));
   const filters = useState("customers:filters", () => ({
     search: "",
     status: "all",
+    withTrashed: false,
+    onlyTrashed: false,
   }));
+  const { invalidateStatsCache } = useDashboard();
 
   /**
    * Récupère la liste des clients
@@ -27,13 +30,16 @@ export const useCustomers = () => {
     loading.value = true;
 
     try {
-      const params = {
+      const params: Record<string, any> = {
         page: pagination.value.pageIndex + 1,
         per_page: pagination.value.pageSize,
         search: filters.value.search || undefined,
         status:
           filters.value.status !== "all" ? filters.value.status : undefined,
       };
+
+      if (filters.value.withTrashed) params.with_trashed = true;
+      if (filters.value.onlyTrashed) params.only_trashed = true;
 
       const response = await client<ApiResponse<LaravelPaginator<Customer>>>(
         "/api/v1/admin/customers",
@@ -45,7 +51,6 @@ export const useCustomers = () => {
         pagination.value.total = response.data.total;
       }
     } catch (error: any) {
-      // Erreur déjà gérée par le plugin api.client.ts
       customers.value = [];
       pagination.value.total = 0;
     } finally {
@@ -57,51 +62,32 @@ export const useCustomers = () => {
    * Récupère un client par son ID
    */
   async function fetchCustomer(id: string): Promise<Customer | null> {
-    loading.value = true;
-
     try {
       const response = await client<ApiResponse<Customer>>(
         `/api/v1/admin/customers/${id}`
       );
-
-      if (response.success) {
-        return response.data;
-      }
-
-      return null;
+      return response.success ? response.data : null;
     } catch (error: any) {
-      const message =
-        error.response?._data?.message || "Impossible de charger le client";
-
       toast.add({
         title: "Erreur",
-        description: message,
+        description:
+          error.response?._data?.message || "Impossible de charger le client",
         color: "error",
       });
-
       return null;
-    } finally {
-      loading.value = false;
     }
   }
 
   /**
    * Crée un nouveau client
    */
-  async function createCustomer(data: {
-    first_name: string;
-    last_name: string;
-    email: string;
-  }): Promise<boolean> {
+  async function createCustomer(data: Partial<Customer>): Promise<boolean> {
     loading.value = true;
 
     try {
       const response = await client<ApiResponse<Customer>>(
         "/api/v1/admin/customers",
-        {
-          method: "POST",
-          body: data,
-        }
+        { method: "POST", body: data }
       );
 
       if (response.success) {
@@ -109,17 +95,15 @@ export const useCustomers = () => {
           title: "Client créé",
           description: response.message,
           color: "success",
+          icon: "i-lucide-check-circle",
         });
-
+        invalidateStatsCache(); // ✅ Invalide le cache
         await fetchCustomers();
         return true;
       }
-
       return false;
     } catch (error: any) {
-      // Gestion des erreurs de validation Laravel
       const errors = error.response?._data?.errors;
-
       if (errors) {
         const errorMessages = Object.values(errors).flat().join("\n");
         toast.add({
@@ -129,7 +113,6 @@ export const useCustomers = () => {
           duration: 5000,
         });
       }
-
       return false;
     } finally {
       loading.value = false;
@@ -148,37 +131,24 @@ export const useCustomers = () => {
     try {
       const response = await client<ApiResponse<Customer>>(
         `/api/v1/admin/customers/${id}`,
-        {
-          method: "PUT",
-          body: data,
-        }
+        { method: "PUT", body: data }
       );
 
       if (response.success) {
-        toast.add({
-          title: "Client mis à jour",
-          description: response.message,
-          color: "success",
-        });
-
         await fetchCustomers();
         return true;
       }
-
       return false;
     } catch (error: any) {
       const errors = error.response?._data?.errors;
-
       if (errors) {
         const errorMessages = Object.values(errors).flat().join("\n");
         toast.add({
           title: "Erreur de validation",
           description: errorMessages,
           color: "error",
-          duration: 5000,
         });
       }
-
       return false;
     } finally {
       loading.value = false;
@@ -186,7 +156,34 @@ export const useCustomers = () => {
   }
 
   /**
-   * Supprime un ou plusieurs clients
+   * Change le statut d'un client
+   */
+  async function updateStatus(
+    id: string,
+    action: "activate" | "deactivate" | "suspend"
+  ): Promise<boolean> {
+    loading.value = true;
+
+    try {
+      const response = await client<ApiResponse<Customer>>(
+        `/api/v1/admin/customers/${id}/${action}`,
+        { method: "PATCH" }
+      );
+
+      if (response.success) {
+        await fetchCustomers();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      return false;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
+   * Supprime (soft delete) un ou plusieurs clients
    */
   async function deleteCustomers(ids: string[]): Promise<boolean> {
     loading.value = true;
@@ -201,25 +198,16 @@ export const useCustomers = () => {
         );
       } else {
         response = await client<ApiResponse<null>>(
-          "/api/v1/admin/customers/bulk",
-          {
-            method: "POST",
-            body: { ids },
-          }
+          "/api/v1/admin/customers/bulk/destroy",
+          { method: "POST", body: { ids } }
         );
       }
 
       if (response.success) {
-        toast.add({
-          title: "Suppression réussie",
-          description: `${ids.length} client(s) supprimé(s)`,
-          color: "success",
-        });
-
+        invalidateStatsCache();
         await fetchCustomers();
         return true;
       }
-
       return false;
     } catch (error) {
       return false;
@@ -229,58 +217,240 @@ export const useCustomers = () => {
   }
 
   /**
-   * change de page
+   * Restaure un ou plusieurs clients supprimés
    */
+  async function restoreCustomers(ids: string[]): Promise<boolean> {
+    loading.value = true;
+
+    try {
+      let response: ApiResponse<null>;
+
+      if (ids.length === 1) {
+        response = await client<ApiResponse<null>>(
+          `/api/v1/admin/customers/${ids[0]}/restore`,
+          { method: "POST" }
+        );
+      } else {
+        response = await client<ApiResponse<null>>(
+          "/api/v1/admin/customers/bulk/restore",
+          { method: "POST", body: { ids } }
+        );
+      }
+
+      if (response.success) {
+        toast.add({
+          title: "Restauration réussie",
+          description: response.message,
+          color: "success",
+        });
+        invalidateStatsCache();
+        await fetchCustomers();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      return false;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
+   * Suppression définitive
+   */
+  async function forceDeleteCustomers(ids: string[]): Promise<boolean> {
+    loading.value = true;
+
+    try {
+      let response: ApiResponse<null>;
+
+      if (ids.length === 1) {
+        response = await client<ApiResponse<null>>(
+          `/api/v1/admin/customers/${ids[0]}/force`,
+          { method: "DELETE" }
+        );
+      } else {
+        response = await client<ApiResponse<null>>(
+          "/api/v1/admin/customers/bulk/force-delete",
+          { method: "POST", body: { ids } }
+        );
+      }
+
+      if (response.success) {
+        toast.add({
+          title: "Suppression définitive",
+          description: response.message,
+          color: "success",
+        });
+        invalidateStatsCache();
+        await fetchCustomers();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      return false;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
+   * Export des clients (Excel / CSV / PDF)
+   */
+  async function exportCustomers(
+    format: "xlsx" | "csv" | "pdf",
+    selectedIds?: string[]
+  ) {
+    loading.value = true;
+
+    try {
+      const body: {
+        format: "xlsx" | "csv" | "pdf";
+        status?: string;
+        ids?: string[];
+        search?: string;
+      } = {
+        format,
+        status:
+          filters.value.status !== "all" ? filters.value.status : undefined,
+      };
+
+      if (selectedIds?.length) {
+        body.ids = selectedIds;
+      }
+
+      if (filters.value.search) {
+        body.search = filters.value.search;
+      }
+
+      // Récupération du fichier (BLOB)
+      const response = await client.raw("/api/v1/admin/customers/export", {
+        method: "POST",
+        body,
+        responseType: "blob",
+      });
+
+      const blob = response._data as Blob;
+
+      // ⬇️ Téléchargement du fichier
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `customers_${
+        new Date().toISOString().split("T")[0]
+      }.${format}`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.add({
+        title: "Export réussi",
+        description: `Fichier ${format.toUpperCase()} téléchargé`,
+        color: "success",
+        icon: "i-lucide-download",
+      });
+    } catch (error) {
+      console.error(error);
+
+      toast.add({
+        title: "Erreur d'export",
+        description: "Impossible de générer le fichier",
+        color: "error",
+        icon: "i-lucide-alert-circle",
+      });
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
+   * Récupère les statistiques
+   */
+  async function fetchStatistics() {
+    try {
+      const response = await client<
+        ApiResponse<{
+          total: number;
+          active: number;
+          inactive: number;
+          suspended: number;
+          trashed: number;
+          verified: number;
+          with_oauth: number;
+        }>
+      >("/api/v1/admin/customers/statistics");
+
+      return response.success ? response.data : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // Helpers de pagination et filtres
   function setPage(pageIndex: number) {
     pagination.value.pageIndex = pageIndex;
     fetchCustomers();
   }
 
-  /**
-   * Met à jour la recherche
-   */
   function setSearch(search: string) {
     filters.value.search = search;
     pagination.value.pageIndex = 0;
     fetchCustomers();
   }
 
-  /**
-   * Met à jour le filtre de statut
-   */
   function setStatus(status: string) {
     filters.value.status = status;
     pagination.value.pageIndex = 0;
     fetchCustomers();
   }
 
-  /**
-   * Réinitialise les filtres
-   */
+  function setTrashedFilter(withTrashed: boolean, onlyTrashed: boolean) {
+    filters.value.withTrashed = withTrashed;
+    filters.value.onlyTrashed = onlyTrashed;
+    pagination.value.pageIndex = 0;
+    fetchCustomers();
+  }
+
   function resetFilters() {
-    filters.value = { search: "", status: "all" };
+    filters.value = {
+      search: "",
+      status: "all",
+      withTrashed: false,
+      onlyTrashed: false,
+    };
     pagination.value.pageIndex = 0;
     fetchCustomers();
   }
 
   return {
-    // État (readonly pour éviter les mutations directes)
+    // État
     customers: readonly(customers),
     loading: readonly(loading),
     pagination: readonly(pagination),
     filters: readonly(filters),
 
-    // Actions
+    // Actions CRUD
     fetchCustomers,
     fetchCustomer,
     createCustomer,
     updateCustomer,
     deleteCustomers,
 
+    // Actions avancées
+    updateStatus,
+    restoreCustomers,
+    forceDeleteCustomers,
+    exportCustomers,
+    fetchStatistics,
+
     // Helpers
     setPage,
     setSearch,
     setStatus,
+    setTrashedFilter,
     resetFilters,
   };
 };
