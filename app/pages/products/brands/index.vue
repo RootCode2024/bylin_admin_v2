@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
 import { upperFirst } from 'scule'
-import type { Customer } from '~/types/customer'
+import type { Brand } from '~/types/brand'
 import type { Table as TanstackTable } from '@tanstack/table-core'
 
 definePageMeta({
-  layout: 'default'
+  layout: 'default',
+  title: 'Marques',
+  description: 'Gérer les marques de produits'
 })
 
 // ========================================
@@ -21,59 +23,50 @@ const UDropdownMenu = resolveComponent('UDropdownMenu')
 // Composables
 // ========================================
 const toast = useToast()
-const router = useRouter()
 
 const {
-  customers,
+  brands,
   loading,
   pagination,
   filters,
-  fetchCustomers,
+  fetchBrands,
+  toggleStatus,
   setPage,
   setSearch,
   setStatus,
-  setTrashedFilter,
-  updateStatus,
-  restoreCustomers,
-  exportCustomers
-} = useCustomers()
+  setTrashedFilter
+} = useBrands()
 
 // ========================================
 // État local
 // ========================================
-const table = useTemplateRef<{ tableApi: TanstackTable<Customer> }>('table')
+const table = useTemplateRef<{ tableApi: TanstackTable<Brand> }>('table')
 const rowSelection = ref<Record<string, boolean>>({})
-const localSearch = ref(filters.value.search)
-const localStatus = ref(filters.value.status)
-const showTrashed = ref(filters.value.onlyTrashed)
+
+// États locaux pour les filtres UI
+const localSearch = ref<string>(filters.value.search || '')
+const localStatus = ref<'all' | 'active' | 'inactive'>('all')
+const showTrashed = ref<boolean>(filters.value.only_trashed || false)
 
 // Modales
+const isEditModalOpen = ref(false)
 const isDeleteModalOpen = ref(false)
-const isRestoreModalOpen = ref(false)
-const isExportModalOpen = ref(false)
+const brandToEdit = ref<Brand | null>(null)
 const idsToDelete = ref<string[]>([])
-const idsToRestore = ref<string[]>([])
 
 // ========================================
 // Configuration
 // ========================================
-const statusLabels: Record<string, string> = {
+const statusLabels: Record<'all' | 'active' | 'inactive', string> = {
   all: 'Tous',
-  active: 'Actif',
-  inactive: 'Inactif',
-  suspended: 'Suspendu'
-}
-
-const statusColors: Record<string, string> = {
-  active: 'success',
-  inactive: 'neutral',
-  suspended: 'warning'
+  active: 'Actives',
+  inactive: 'Inactives'
 }
 
 // ========================================
 // Colonnes de la table
 // ========================================
-const columns: TableColumn<Customer>[] = [
+const columns: TableColumn<Brand>[] = [
   {
     id: 'select',
     header: ({ table }) => h(UCheckbox, {
@@ -95,57 +88,68 @@ const columns: TableColumn<Customer>[] = [
   },
   {
     accessorKey: 'name',
-    header: 'Client',
+    header: 'Marque',
     cell: ({ row }) => {
-      const fullName = `${row.original.first_name} ${row.original.last_name}`
       return h('div', {
         class: 'flex items-center gap-3 cursor-pointer group',
-        onClick: () => router.push(`/customers/${row.original.id}`)
+        onClick: () => openEditModal(row.original)
       }, [
-        h(UAvatar, {
-          src: row.original.avatar_url,
-          alt: fullName,
-          size: 'md',
-          class: 'ring-1 ring-gray-200 dark:ring-gray-800 transition-transform group-hover:scale-105'
-        }),
+        row.original.logo_url
+          ? h(UAvatar, {
+            src: row.original.logo_url,
+            alt: row.original.name,
+            size: 'md',
+            class: 'ring-1 ring-gray-200 dark:ring-gray-800 transition-transform group-hover:scale-105'
+          })
+          : h(UAvatar, {
+            icon: 'i-lucide-tag',
+            size: 'md',
+            class: 'ring-1 ring-gray-200 dark:ring-gray-800 transition-transform group-hover:scale-105'
+          }),
         h('div', [
-          h('p', { class: 'font-medium text-gray-900 dark:text-white group-hover:text-primary-500 transition-colors' }, fullName),
-          h('p', { class: 'text-xs text-gray-500' }, row.original.email)
+          h('p', { class: 'font-medium text-gray-900 dark:text-white group-hover:text-primary-500 transition-colors' }, row.original.name),
+          row.original.website && h('p', { class: 'text-xs text-gray-500 truncate max-w-[200px]' }, row.original.website)
         ])
       ])
     }
   },
   {
-    accessorKey: 'phone',
-    header: 'Téléphone',
-    cell: ({ row }) =>
-      h(
-        'span',
-        { class: 'text-sm' },
-        formatPhone(
-          row.original.phone,
-          getCustomerCountryCode(row.original)
-        )
-      )
+    accessorKey: 'products_count',
+    header: 'Produits',
+    cell: ({ row }) => {
+      const count = row.original.products_count || 0
+      return h(UBadge, {
+        variant: 'subtle',
+        color: count > 0 ? 'primary' : 'neutral',
+        size: 'sm'
+      }, () => count.toString())
+    }
   },
   {
-    accessorKey: 'status',
+    accessorKey: 'is_active',
     header: 'Statut',
     cell: ({ row }) => {
-      const status = row.original.status
-      return h(UBadge, {
-        class: 'capitalize',
-        variant: 'subtle',
-        color: statusColors[status] || 'neutral',
-        size: 'sm'
-      }, () => statusLabels[status] || status)
+      const brand = row.original
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h(UBadge, {
+          class: 'capitalize',
+          variant: 'subtle',
+          color: brand.is_active ? 'success' : 'neutral',
+          size: 'sm'
+        }, () => brand.is_active ? 'Active' : 'Inactive'),
+        brand.deleted_at && h(UBadge, {
+          variant: 'subtle',
+          color: 'error',
+          size: 'sm'
+        }, () => 'Supprimée')
+      ])
     }
   },
   {
     accessorKey: 'created_at',
-    header: 'Inscrit le',
+    header: 'Créée',
     cell: ({ row }) => h('span', { class: 'text-sm text-gray-600' },
-      new Date(row.original.created_at).toLocaleDateString('fr-FR')
+      formatRelativeTimeFR(row.original.created_at)
     )
   },
   {
@@ -170,19 +174,19 @@ const columns: TableColumn<Customer>[] = [
 // ========================================
 // Actions
 // ========================================
-function getRowItems(customer: Customer) {
+function getRowItems(brand: Brand) {
   const items: any[] = [
     [
       {
-        label: 'Voir détails',
-        icon: 'i-lucide-eye',
-        onSelect: () => router.push(`/customers/${customer.id}`)
+        label: 'Modifier',
+        icon: 'i-lucide-pencil',
+        onSelect: () => openEditModal(brand)
       },
       {
         label: 'Copier ID',
         icon: 'i-lucide-copy',
         onSelect: () => {
-          navigator.clipboard.writeText(customer.id)
+          navigator.clipboard.writeText(brand.id)
           toast.add({ title: 'ID copié', color: 'success', icon: 'i-lucide-check' })
         }
       }
@@ -190,66 +194,29 @@ function getRowItems(customer: Customer) {
   ]
 
   // Actions de statut
-  if (!customer.deleted_at) {
-    const statusActions = []
-    if (customer.status !== 'active') {
-      statusActions.push({
-        label: 'Activer',
-        icon: 'i-lucide-check-circle',
-        onSelect: () => updateStatus(customer.id, 'activate')
-      })
-    }
-    if (customer.status !== 'inactive') {
-      statusActions.push({
-        label: 'Désactiver',
-        icon: 'i-lucide-x-circle',
-        onSelect: () => updateStatus(customer.id, 'deactivate')
-      })
-    }
-    if (customer.status !== 'suspended') {
-      statusActions.push({
-        label: 'Suspendre',
-        icon: 'i-lucide-ban',
-        onSelect: () => updateStatus(customer.id, 'suspend')
-      })
-    }
-    if (statusActions.length > 0) items.push(statusActions)
-  }
-
-  // Export individuel
   items.push([{
-    label: 'Exporter',
-    icon: 'i-lucide-download',
+    label: brand.is_active ? 'Désactiver' : 'Activer',
+    icon: brand.is_active ? 'i-lucide-x-circle' : 'i-lucide-check-circle',
+    onSelect: () => handleToggleStatus(brand.id)
+  }])
+
+  // Suppression
+  items.push([{
+    label: 'Supprimer',
+    icon: 'i-lucide-trash',
+    color: 'error',
     onSelect: () => {
-      idsToExport.value = [customer.id]
-      isExportModalOpen.value = true
+      idsToDelete.value = [brand.id]
+      isDeleteModalOpen.value = true
     }
   }])
 
-  // Suppression ou restauration
-  if (customer.deleted_at) {
-    items.push([{
-      label: 'Restaurer',
-      icon: 'i-lucide-rotate-ccw',
-      color: 'success',
-      onSelect: () => {
-        idsToRestore.value = [customer.id]
-        isRestoreModalOpen.value = true
-      }
-    }])
-  } else {
-    items.push([{
-      label: 'Supprimer',
-      icon: 'i-lucide-trash',
-      color: 'error',
-      onSelect: () => {
-        idsToDelete.value = [customer.id]
-        isDeleteModalOpen.value = true
-      }
-    }])
-  }
-
   return items
+}
+
+function openEditModal(brand: Brand) {
+  brandToEdit.value = brand
+  isEditModalOpen.value = true
 }
 
 function openDeleteModal(ids: string[]) {
@@ -257,22 +224,13 @@ function openDeleteModal(ids: string[]) {
   isDeleteModalOpen.value = true
 }
 
-function openRestoreModal(ids: string[]) {
-  idsToRestore.value = ids
-  isRestoreModalOpen.value = true
+async function handleToggleStatus(id: string) {
+  await toggleStatus(id)
 }
 
-function openExportModal(ids?: string[]) {
-  idsToExport.value = ids || []
-  isExportModalOpen.value = true
-}
-
-function onDeleteSuccess() {
+function onSuccess() {
   rowSelection.value = {}
-}
-
-function onRestoreSuccess() {
-  rowSelection.value = {}
+  fetchBrands()
 }
 
 // ========================================
@@ -284,7 +242,7 @@ const selectedIds = computed(() => {
   return api.getSelectedRowModel().rows.map(row => row.original.id)
 })
 
-const selectedCustomersHaveDeleted = computed(() => {
+const selectedBrandsHaveDeleted = computed(() => {
   const api = table.value?.tableApi
   if (!api) return false
   return api.getSelectedRowModel().rows.some(row => !!row.original.deleted_at)
@@ -299,26 +257,43 @@ const visibleColumns = computed(() =>
   table.value?.tableApi?.getAllColumns().filter(c => c.getCanHide()) || []
 )
 
-const idsToExport = ref<string[]>([])
-
 // ========================================
 // Watchers
 // ========================================
-watchDebounced(localSearch, (val) => setSearch(val), { debounce: 400 })
+watchDebounced(
+  localSearch,
+  (val) => {
+    if (val !== undefined) {
+      setSearch(val)
+    }
+  },
+  { debounce: 400 }
+)
+
 watch(localStatus, (val) => setStatus(val))
 watch(showTrashed, (val) => setTrashedFilter(false, val))
 
 onMounted(() => {
-  fetchCustomers()
+  // Initialiser les états locaux à partir des filtres
+  if (filters.value.is_active === true) {
+    localStatus.value = 'active'
+  } else if (filters.value.is_active === false) {
+    localStatus.value = 'inactive'
+  } else {
+    localStatus.value = 'all'
+  }
+
+  fetchBrands()
 })
 </script>
 
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Clients" :badge="pagination.total">
+      <UDashboardNavbar title="Marques" :badge="pagination.total">
         <template #right>
-          <CustomersCreateModal />
+          <!-- Le modal CreateModal contient son propre bouton trigger -->
+          <BrandCreateModal @created="onSuccess" />
         </template>
       </UDashboardNavbar>
     </template>
@@ -327,7 +302,7 @@ onMounted(() => {
       <!-- Toolbar -->
       <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-2 w-full lg:w-auto">
-          <UInput v-model="localSearch" icon="i-lucide-search" placeholder="Rechercher un client..."
+          <UInput v-model="localSearch" icon="i-lucide-search" placeholder="Rechercher une marque..."
             class="w-full sm:w-72" :ui="{ trailing: 'pointer-events-auto' }">
             <template #trailing v-if="localSearch">
               <UButton color="neutral" variant="link" icon="i-lucide-x" :padded="false" @click="localSearch = ''" />
@@ -337,8 +312,6 @@ onMounted(() => {
           <USelectMenu v-model="localStatus"
             :items="Object.entries(statusLabels).map(([v, l]) => ({ label: l, value: v }))" value-key="value"
             label-key="label" class="w-40" />
-
-          <UCheckbox v-model="showTrashed" label="Supprimés" />
         </div>
 
         <div class="flex items-center gap-2">
@@ -346,24 +319,14 @@ onMounted(() => {
           <Transition enter-active-class="transition duration-200" enter-from-class="opacity-0 translate-y-1"
             leave-active-class="transition duration-150" leave-to-class="opacity-0 translate-y-1">
             <div v-if="selectedIds.length > 0" class="flex items-center gap-2">
-              <UButton v-if="!selectedCustomersHaveDeleted" color="error" variant="soft" icon="i-lucide-trash-2"
+              <UButton v-if="!selectedBrandsHaveDeleted" color="error" variant="soft" icon="i-lucide-trash-2"
                 :label="`Supprimer (${selectedIds.length})`" @click="openDeleteModal(selectedIds)" />
-
-              <UButton v-if="selectedCustomersHaveDeleted" color="success" variant="soft" icon="i-lucide-rotate-ccw"
-                :label="`Restaurer (${selectedIds.length})`" @click="openRestoreModal(selectedIds)" />
-
-              <UButton color="primary" variant="soft" icon="i-lucide-download" label="Exporter sélection"
-                @click="openExportModal(selectedIds)" />
             </div>
           </Transition>
 
-          <!-- Export global -->
-          <UButton icon="i-lucide-download" color="primary" variant="outline" label="Exporter"
-            @click="openExportModal()" />
-
           <!-- Menu Colonnes -->
           <UDropdownMenu :items="visibleColumns.map(col => ({
-            label: upperFirst(col.id === 'name' ? 'Client' : col.id),
+            label: upperFirst(col.id === 'name' ? 'Marque' : col.id === 'is_active' ? 'Statut' : col.id === 'products_count' ? 'Produits' : col.id),
             type: 'checkbox',
             checked: col.getIsVisible(),
             onUpdateChecked: (v: boolean) => col.toggleVisibility(!!v)
@@ -376,7 +339,7 @@ onMounted(() => {
       <!-- Tableau -->
       <div
         class="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-900 flex-1 flex flex-col">
-        <UTable ref="table" v-model:row-selection="rowSelection" :data="customers as any" :columns="columns"
+        <UTable ref="table" v-model:row-selection="rowSelection" :data="brands as any" :columns="columns"
           :loading="loading" class="flex-1">
           <!-- Loading State -->
           <template #loading-state>
@@ -397,9 +360,9 @@ onMounted(() => {
           <template #empty-state>
             <div class="flex flex-col items-center justify-center py-16 text-center">
               <div class="p-4 rounded-full bg-gray-50 dark:bg-gray-800/50 mb-3">
-                <UIcon name="i-lucide-users" class="w-8 h-8 text-gray-400" />
+                <UIcon name="i-lucide-tag" class="w-8 h-8 text-gray-400" />
               </div>
-              <p class="text-base font-medium text-gray-900 dark:text-white">Aucun client trouvé</p>
+              <p class="text-base font-medium text-gray-900 dark:text-white">Aucune marque trouvée</p>
               <p class="text-sm text-gray-500 mt-1" v-if="localSearch || localStatus !== 'all'">
                 Essayez de modifier vos filtres.
               </p>
@@ -413,15 +376,14 @@ onMounted(() => {
       <!-- Pagination -->
       <div class="flex items-center justify-between mt-4 border-t border-gray-200 dark:border-gray-800 pt-4">
         <span class="text-sm text-gray-500">
-          Total : <span class="font-medium text-gray-900 dark:text-white">{{ pagination.total }}</span> client(s)
+          Total : <span class="font-medium text-gray-900 dark:text-white">{{ pagination.total }}</span> marque(s)
         </span>
         <UPagination v-model:page="currentPage" :total="pagination.total" :items-per-page="pagination.pageSize" />
       </div>
 
       <!-- Modales -->
-      <CustomersDeleteModal v-model:open="isDeleteModalOpen" :ids="idsToDelete" @success="onDeleteSuccess" />
-      <CustomersRestoreModal v-model:open="isRestoreModalOpen" :ids="idsToRestore" @success="onRestoreSuccess" />
-      <CustomersExportModal v-model:open="isExportModalOpen" :selected-ids="idsToExport" />
+      <BrandEditModal v-model:open="isEditModalOpen" :brand="brandToEdit" @updated="onSuccess" />
+      <BrandDeleteModal v-model:open="isDeleteModalOpen" :ids="idsToDelete" @success="onSuccess" />
     </template>
   </UDashboardPanel>
 </template>

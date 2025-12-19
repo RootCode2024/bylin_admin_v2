@@ -52,6 +52,7 @@ const links = computed(() => [
     }, {
       label: 'Marques',
       to: '/products/brands',
+      badge: stats.value.brands > 0 ? stats.value.brands.toString() : undefined,
       onSelect: closeMenu
     }, {
       label: 'Attributs & Variantes',

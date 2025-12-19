@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
-import { getPaginationRowModel } from '@tanstack/table-core'
 
 const data = ref([
   { id: 1, name: 'T-Shirt Basique', category: 'Vêtements', price: 19.99, stock: 150, status: 'active', image: 'https://placehold.co/50' },

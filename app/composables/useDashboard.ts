@@ -4,6 +4,7 @@ interface DashboardStats {
   customers: number;
   orders: number;
   products: number;
+  brands: number;
   reviews: number;
 }
 
@@ -19,6 +20,7 @@ const _useDashboard = () => {
     customers: 0,
     orders: 0,
     products: 0,
+    brands: 0,
     reviews: 0,
   }))
 
