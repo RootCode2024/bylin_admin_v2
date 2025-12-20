@@ -93,6 +93,7 @@ const links = computed(() => [
     label: 'Promotions',
     icon: 'i-lucide-percent',
     to: '/promotions',
+    badge: stats.value.promotions > 0 ? stats.value.promotions.toString() : undefined,
     onSelect: closeMenu
   }, {
     label: 'Avis Clients',

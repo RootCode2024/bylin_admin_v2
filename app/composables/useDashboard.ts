@@ -7,6 +7,7 @@ interface DashboardStats {
   brands: number;
   categories: number;
   attributes: number;
+  promotions: number;
   reviews: number;
 }
 
@@ -25,6 +26,7 @@ const _useDashboard = () => {
     brands: 0,
     categories: 0,
     attributes: 0,
+    promotions: 0,
     reviews: 0,
   }))
 
