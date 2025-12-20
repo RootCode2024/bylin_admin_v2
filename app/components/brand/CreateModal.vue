@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
-import { DEFAULT_IMAGE_CONFIG, formatFileSize, buildWebsiteUrl } from '~/utils/brand'
+import { buildWebsiteUrl } from '~/utils/brand'
+import { DEFAULT_IMAGE_CONFIG } from '~/utils'
+import { formatFileSize } from '~/utils'
 
 /**
  * Composant de création de marque

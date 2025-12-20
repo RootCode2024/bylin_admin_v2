@@ -48,6 +48,7 @@ const links = computed(() => [
     }, {
       label: 'Catégories',
       to: '/products/categories',
+      badge: stats.value.categories > 0 ? stats.value.categories.toString() : undefined,
       onSelect: closeMenu
     }, {
       label: 'Marques',
