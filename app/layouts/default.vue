@@ -58,6 +58,7 @@ const links = computed(() => [
     }, {
       label: 'Attributs & Variantes',
       to: '/products/attributes',
+      badge: stats.value.attributes > 0 ? stats.value.attributes.toString() : undefined,
       onSelect: closeMenu
     }, {
       label: 'Authenticité & QR',
