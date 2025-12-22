@@ -1,5 +1,3 @@
-import type { ImageUploadConfig } from "~/types/brand";
-
 /**
  * Construit une URL complète de site web
  */

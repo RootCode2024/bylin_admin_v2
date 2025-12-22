@@ -44,6 +44,7 @@ const links = computed(() => [
       label: 'Produits',
       to: '/products',
       exact: true,
+      badge: stats.value.products > 0 ? stats.value.products.toString() : undefined,
       onSelect: closeMenu
     }, {
       label: 'Catégories',
