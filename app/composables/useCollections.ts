@@ -1,15 +1,14 @@
 import type {
-  Product,
-  ProductFilters,
-  ProductStatistics,
+  Collection,
+  CollectionFilters,
+  CollectionFormData,
+  CollectionStatistics,
   LaravelPaginator,
   ApiResponse,
   LoadingState,
-  ProductFormData,
-  ProductStatus,
-} from "~/types/product";
+} from "~/types/collection";
 
-export const useProduct = () => {
+export const useCollections = () => {
   const client = useSanctumClient();
   const toast = useToast();
 
@@ -18,35 +17,28 @@ export const useProduct = () => {
   // ============================================================================
 
   const state = useState<{
-    products: Product[];
-    currentProduct: Product | null;
-    statistics: ProductStatistics | null;
+    collections: Collection[];
+    currentCollection: Collection | null;
+    statistics: CollectionStatistics | null;
     loadingState: LoadingState;
     error: string | null;
-    pagination: LaravelPaginator<Product> | null;
-    filters: ProductFilters;
-  }>("products:state", () => ({
-    products: [],
-    currentProduct: null,
+    pagination: LaravelPaginator<Collection> | null;
+    filters: CollectionFilters;
+  }>("collections:state", () => ({
+    collections: [],
+    currentCollection: null,
     statistics: null,
     loadingState: "idle",
     error: null,
     pagination: null,
     filters: {
       search: "",
-      status: undefined,
-      brand_id: undefined,
-      category_id: undefined,
-      in_stock: undefined,
-      is_preorder: undefined,
-      is_featured: undefined,
-      min_price: undefined,
-      max_price: undefined,
-      with_trashed: false,
+      is_active: "all",
       per_page: 15,
       page: 1,
       sort_by: "created_at",
-      sort_order: "desc",
+      sort_order: "asc",
+      with_trashed: false,
     },
   }));
 
@@ -55,24 +47,16 @@ export const useProduct = () => {
   // ============================================================================
 
   const isLoading = computed(() => state.value.loadingState === "loading");
-  // CORRECTION : Exposer les produits via un computed résout souvent les soucis de type readonly
-  // et permet d'utiliser :data="products" directement dans la table
-  const products = computed(() => state.value.products);
-  const hasData = computed(() => state.value.products.length > 0);
+  const collections = computed(() => state.value.collections);
+  const hasData = computed(() => state.value.collections.length > 0);
   const hasError = computed(() => state.value.loadingState === "error");
-
   const totalPages = computed(() => state.value.pagination?.last_page || 1);
 
   const hasActiveFilters = computed(() => {
     const f = state.value.filters;
     return Boolean(
       f.search ||
-        f.status ||
-        f.brand_id ||
-        f.category_id ||
-        f.in_stock !== undefined ||
-        f.is_preorder !== undefined ||
-        f.is_featured !== undefined ||
+        (f.is_active !== "all" && f.is_active !== undefined) ||
         f.with_trashed
     );
   });
@@ -82,9 +66,9 @@ export const useProduct = () => {
   // ============================================================================
 
   /**
-   * Récupère la liste des produits avec les filtres actuels
+   * Récupère la liste des collections
    */
-  async function fetchProducts(): Promise<void> {
+  async function fetchCollections(): Promise<void> {
     state.value.loadingState = "loading";
     state.value.error = null;
 
@@ -93,34 +77,62 @@ export const useProduct = () => {
         page: state.value.filters.page,
         per_page: state.value.filters.per_page,
         search: state.value.filters.search || undefined,
-        sort_by: state.value.filters.sort_by,
-        sort_order: state.value.filters.sort_order,
+        paginate: true,
+        with_counts: true,
+        order_by: state.value.filters.sort_by,
+        order_dir: state.value.filters.sort_order,
       };
 
-      if (state.value.filters.status)
-        params.status = state.value.filters.status;
-      if (state.value.filters.brand_id)
-        params.brand_id = state.value.filters.brand_id;
-      if (state.value.filters.category_id)
-        params.category_id = state.value.filters.category_id;
-      if (state.value.filters.in_stock !== undefined)
-        params.in_stock = state.value.filters.in_stock ? 1 : 0;
-      if (state.value.filters.is_preorder !== undefined)
-        params.is_preorder = state.value.filters.is_preorder ? 1 : 0;
-      if (state.value.filters.is_featured !== undefined)
-        params.is_featured = state.value.filters.is_featured ? 1 : 0;
-      if (state.value.filters.with_trashed) params.with_trashed = 1;
+      if (state.value.filters.is_active !== "all") {
+        params.is_active = state.value.filters.is_active ? 1 : 0;
+      }
 
-      const response = await client<ApiResponse<LaravelPaginator<Product>>>(
-        "/api/v1/admin/products",
+      if (state.value.filters.with_trashed) {
+        params.with_trashed = 1;
+      }
+
+      // ✅ CORRECTION: Type de réponse adapté à ApiController
+      interface ApiPaginatedResponse {
+        success: boolean;
+        message: string;
+        data: Collection[]; // Les items directement dans data
+        meta: {
+          current_page: number;
+          last_page: number;
+          per_page: number;
+          total: number;
+          from: number | null;
+          to: number | null;
+        };
+      }
+
+      const response = await client<ApiPaginatedResponse>(
+        "/api/v1/admin/collections",
         { method: "GET", params }
       );
 
-      console.log('La liste des produits : ', response)
-
       if (response.success) {
-        state.value.products = response.data.data;
-        state.value.pagination = response.data;
+        // ✅ Les données sont directement dans response.data
+        state.value.collections = response.data;
+
+        // ✅ Créer un objet pagination compatible avec le reste du code
+        state.value.pagination = {
+          data: response.data,
+          current_page: response.meta.current_page,
+          last_page: response.meta.last_page,
+          per_page: response.meta.per_page,
+          total: response.meta.total,
+          from: response.meta.from,
+          to: response.meta.to,
+          // Valeurs par défaut pour les autres champs requis
+          first_page_url: "",
+          last_page_url: "",
+          next_page_url: null,
+          prev_page_url: null,
+          path: "",
+          links: [],
+        };
+
         state.value.loadingState = "success";
       } else {
         throw new Error(response.message || "Erreur de chargement");
@@ -128,26 +140,26 @@ export const useProduct = () => {
     } catch (error: any) {
       state.value.loadingState = "error";
       state.value.error = error.message;
-      state.value.products = [];
-      handleError(error, "Impossible de charger les produits");
+      state.value.collections = [];
+      handleError(error, "Impossible de charger les collections");
     }
   }
 
   /**
-   * Récupère un produit par ID
+   * Récupère une collection par ID
    */
-  async function fetchProduct(id: string): Promise<Product | null> {
+  async function fetchCollection(id: string): Promise<Collection | null> {
     state.value.loadingState = "loading";
     state.value.error = null;
 
     try {
-      const response = await client<ApiResponse<Product>>(
-        `/api/v1/admin/products/${id}`,
+      const response = await client<ApiResponse<Collection>>(
+        `/api/v1/admin/collections/${id}`,
         { method: "GET" }
       );
 
       if (response.success) {
-        state.value.currentProduct = response.data;
+        state.value.currentCollection = response.data;
         state.value.loadingState = "success";
         return response.data;
       }
@@ -155,36 +167,38 @@ export const useProduct = () => {
     } catch (error: any) {
       state.value.loadingState = "error";
       state.value.error = error.message;
-      handleError(error, "Impossible de charger le produit");
+      handleError(error, "Impossible de charger la collection");
       return null;
     }
   }
 
   /**
-   * Crée un produit
+   * Crée une collection
    */
-  async function createProduct(data: ProductFormData): Promise<Product | null> {
+  async function createCollection(
+    data: CollectionFormData
+  ): Promise<Collection | null> {
     state.value.loadingState = "loading";
     state.value.error = null;
 
     try {
       const formData = objectToFormData(data);
 
-      const response = await client<ApiResponse<Product>>(
-        "/api/v1/admin/products",
+      const response = await client<ApiResponse<Collection>>(
+        "/api/v1/admin/collections",
         { method: "POST", body: formData }
       );
 
       if (response.success) {
         toast.add({
           title: "Succès",
-          description: "Produit créé avec succès",
+          description: "Collection créée avec succès",
           color: "success",
           icon: "i-lucide-check-circle",
         });
 
         state.value.loadingState = "success";
-        await fetchProducts();
+        await fetchCollections();
         return response.data;
       }
       return null;
@@ -197,12 +211,12 @@ export const useProduct = () => {
   }
 
   /**
-   * Met à jour un produit
+   * Met à jour une collection
    */
-  async function updateProduct(
+  async function updateCollection(
     id: string,
-    data: Partial<ProductFormData>
-  ): Promise<Product | null> {
+    data: Partial<CollectionFormData>
+  ): Promise<Collection | null> {
     state.value.loadingState = "loading";
     state.value.error = null;
 
@@ -210,25 +224,25 @@ export const useProduct = () => {
       const formData = objectToFormData(data);
       formData.append("_method", "PUT");
 
-      const response = await client<ApiResponse<Product>>(
-        `/api/v1/admin/products/${id}`,
+      const response = await client<ApiResponse<Collection>>(
+        `/api/v1/admin/collections/${id}`,
         { method: "POST", body: formData }
       );
 
       if (response.success) {
         toast.add({
           title: "Succès",
-          description: "Produit mis à jour",
+          description: "Collection mise à jour",
           color: "success",
           icon: "i-lucide-check-circle",
         });
 
-        state.value.currentProduct = response.data;
+        state.value.currentCollection = response.data;
         state.value.loadingState = "success";
 
-        const index = state.value.products.findIndex((p) => p.id === id);
+        const index = state.value.collections.findIndex((c) => c.id === id);
         if (index !== -1) {
-          state.value.products[index] = response.data;
+          state.value.collections[index] = response.data;
         }
 
         return response.data;
@@ -243,16 +257,16 @@ export const useProduct = () => {
   }
 
   /**
-   * Supprime un produit
+   * Supprime une collection
    */
-  async function deleteProduct(id: string): Promise<boolean> {
-    return deleteProducts([id]);
+  async function deleteCollection(id: string): Promise<boolean> {
+    return deleteCollections([id]);
   }
 
   /**
-   * Supprime plusieurs produits
+   * Supprime plusieurs collections
    */
-  async function deleteProducts(ids: string[]): Promise<boolean> {
+  async function deleteCollections(ids: string[]): Promise<boolean> {
     if (ids.length === 0) return false;
 
     state.value.loadingState = "loading";
@@ -261,8 +275,8 @@ export const useProduct = () => {
     try {
       const isBulk = ids.length > 1;
       const url = isBulk
-        ? "/api/v1/admin/products/bulk/destroy"
-        : `/api/v1/admin/products/${ids[0]}`;
+        ? "/api/v1/admin/collections/bulk/destroy"
+        : `/api/v1/admin/collections/${ids[0]}`;
 
       const method = isBulk ? "POST" : "DELETE";
       const body = isBulk ? { ids } : undefined;
@@ -272,13 +286,13 @@ export const useProduct = () => {
       if (response.success) {
         toast.add({
           title: "Suppression réussie",
-          description: `${ids.length} produit(s) supprimé(s)`,
+          description: `${ids.length} collection(s) supprimée(s)`,
           color: "success",
           icon: "i-lucide-trash-2",
         });
 
         state.value.loadingState = "success";
-        await fetchProducts();
+        await fetchCollections();
         return true;
       }
       return false;
@@ -291,113 +305,116 @@ export const useProduct = () => {
   }
 
   /**
-   * Duplique un produit
+   * Bascule le statut actif d'une collection
    */
-  async function duplicateProduct(id: string): Promise<Product | null> {
+async function toggleActive(id: string): Promise<boolean> {
+  try {
+    console.log("[toggleActive] Start", { id });
     state.value.loadingState = "loading";
 
-    try {
-      const response = await client<ApiResponse<Product>>(
-        `/api/v1/admin/products/${id}/duplicate`,
-        { method: "POST" }
-      );
+    const response = await client<ApiResponse<Collection>>(
+      `/api/v1/admin/collections/${id}/toggle-active`,
+      { method: "POST" }
+    );
 
-      if (response.success) {
-        toast.add({
-          title: "Produit dupliqué",
-          color: "success",
-          icon: "i-lucide-copy",
-        });
+    console.log("[toggleActive] Response", response);
 
-        state.value.loadingState = "success";
-        await fetchProducts();
-        return response.data;
+    if (response.success) {
+      // Mise à jour dans la liste
+      const index = state.value.collections.findIndex((c) => c.id === id);
+      if (index !== -1) {
+        state.value.collections = [
+          ...state.value.collections.slice(0, index),
+          response.data,
+          ...state.value.collections.slice(index + 1),
+        ];
       }
-      return null;
-    } catch (error: any) {
-      state.value.loadingState = "error";
-      handleError(error, "Erreur lors de la duplication");
-      return null;
+
+      // Mise à jour de currentCollection
+      if (state.value.currentCollection?.id === id) {
+        state.value.currentCollection = { ...response.data };
+      }
+
+      state.value.loadingState = "success";
+
+      toast.add({
+        title: "Succès",
+        description: response.message,
+        color: "success",
+        icon: "i-lucide-check-circle",
+      });
+
+      return true;
     }
+
+    state.value.loadingState = "error";
+
+    toast.add({
+      title: "Erreur",
+      description: response.message || "Échec du changement de statut",
+      color: "error",
+    });
+
+    return false;
+  } catch (error: any) {
+    console.error("[toggleActive] Error", error);
+    state.value.loadingState = "error";
+
+    // ✅ Meilleur message d'erreur
+    const errorMessage =
+      error.response?._data?.message ||
+      error.data?.message ||
+      error.message ||
+      "Erreur lors du changement de statut";
+
+    toast.add({
+      title: "Erreur",
+      description: errorMessage,
+      color: "error",
+      icon: "i-lucide-alert-triangle",
+    });
+
+    return false;
   }
+}
 
-  // ============================================================================
-  // ACTIONS SPÉCIFIQUES
-  // ============================================================================
-
-  async function updateStock(
-    id: string,
-    quantity: number,
-    operation: "set" | "add" | "sub" = "set"
-  ): Promise<boolean> {
+  /**
+   * Réorganise les collections
+   */
+  async function reorderCollections(orderedIds: string[]): Promise<boolean> {
     try {
-      const response = await client<ApiResponse<Product>>(
-        `/api/v1/admin/products/${id}/stock`,
+      const response = await client<ApiResponse<null>>(
+        "/api/v1/admin/collections/reorder",
         {
           method: "POST",
-          body: { quantity, operation },
+          body: { ordered_ids: orderedIds },
         }
       );
 
       if (response.success) {
-        if (state.value.currentProduct?.id === id) {
-          state.value.currentProduct.stock_quantity =
-            response.data.stock_quantity;
-        }
-
-        const item = state.value.products.find((p) => p.id === id);
-        if (item) {
-          item.stock_quantity = response.data.stock_quantity;
-        }
-
         toast.add({
-          title: "Stock mis à jour",
+          title: "Ordre mis à jour",
           color: "success",
-          icon: "i-lucide-package-check",
+          icon: "i-lucide-check",
         });
+
+        await fetchCollections();
         return true;
       }
       return false;
     } catch (error: any) {
-      handleError(error, "Erreur mise à jour stock");
+      handleError(error, "Erreur lors de la réorganisation");
       return false;
     }
   }
 
-  async function togglePreorder(
-    id: string,
-    enable: boolean,
-    options?: { available_date?: string; limit?: number; message?: string }
-  ): Promise<boolean> {
-    try {
-      const endpoint = enable ? "enable-preorder" : "disable-preorder";
-      const response = await client<ApiResponse<Product>>(
-        `/api/v1/admin/products/${id}/${endpoint}`,
-        { method: "POST", body: options }
-      );
-
-      if (response.success) {
-        if (state.value.currentProduct?.id === id) {
-          state.value.currentProduct = response.data;
-        }
-
-        toast.add({
-          title: `Précommande ${enable ? "activée" : "désactivée"}`,
-          color: "success",
-        });
-        return true;
-      }
-      return false;
-    } catch (error: any) {
-      handleError(error, "Erreur gestion précommande");
-      return false;
-    }
-  }
-
+  /**
+   * Récupère les statistiques
+   */
   async function fetchStatistics(): Promise<void> {
     try {
-      const response = await client<ApiResponse<ProductStatistics>>(
-        "/api/v1/admin/products/statistics",
+      const response = await client<ApiResponse<CollectionStatistics>>(
+        "/api/v1/admin/collections/statistics",
         { method: "GET" }
       );
 
@@ -405,84 +422,67 @@ export const useProduct = () => {
         state.value.statistics = response.data;
       }
     } catch (error) {
-      console.error("Erreur stats produits", error);
+      console.error("Erreur stats collections", error);
     }
   }
 
   // ============================================================================
-  // GESTION DES FILTRES ET HELPERS
+  // GESTION DES FILTRES
   // ============================================================================
 
   function setPage(page: number) {
     state.value.filters.page = page;
-    fetchProducts();
+    fetchCollections();
   }
 
   function setSearch(search: string) {
     state.value.filters.search = search;
     state.value.filters.page = 1;
-    fetchProducts();
+    fetchCollections();
   }
 
-  function setStatusFilter(status: ProductStatus | "all") {
-    state.value.filters.status = status === "all" ? undefined : status;
+  function setStatusFilter(status: boolean | "all") {
+    state.value.filters.is_active = status;
     state.value.filters.page = 1;
-    fetchProducts();
-  }
-
-  function setStockFilter(val: "all" | "in_stock" | "out_of_stock") {
-    state.value.filters.in_stock =
-      val === "all" ? undefined : val === "in_stock";
-    state.value.filters.page = 1;
-    fetchProducts();
+    fetchCollections();
   }
 
   function resetFilters() {
     state.value.filters = {
       search: "",
-      status: undefined,
-      brand_id: undefined,
-      category_id: undefined,
-      in_stock: undefined,
-      is_preorder: undefined,
-      is_featured: undefined,
-      min_price: undefined,
-      max_price: undefined,
-      with_trashed: false,
+      is_active: "all",
       per_page: 15,
       page: 1,
       sort_by: "created_at",
-      sort_order: "desc",
+      sort_order: "asc",
+      with_trashed: false,
     };
-    fetchProducts();
+    fetchCollections();
   }
 
   function reset() {
     state.value = {
-      products: [],
-      currentProduct: null,
+      collections: [],
+      currentCollection: null,
       statistics: null,
       loadingState: "idle",
       error: null,
       pagination: null,
       filters: {
         search: "",
-        status: undefined,
-        brand_id: undefined,
-        category_id: undefined,
-        in_stock: undefined,
-        is_preorder: undefined,
-        is_featured: undefined,
-        min_price: undefined,
-        max_price: undefined,
-        with_trashed: false,
+        is_active: "all",
         per_page: 15,
         page: 1,
         sort_by: "created_at",
-        sort_order: "desc",
+        sort_order: "asc",
+        with_trashed: false,
       },
     };
   }
+
+  // ============================================================================
+  // HELPERS
+  // ============================================================================
 
   function handleValidationErrors(error: any): void {
     const errors = error.response?._data?.errors;
@@ -565,9 +565,7 @@ export const useProduct = () => {
   // ============================================================================
   return {
     state,
-
-    // CORRECTION : Utiliser ceci dans votre template <UTable :data="products" ... />
-    products,
+    collections,
 
     // Computed
     isLoading,
@@ -577,24 +575,22 @@ export const useProduct = () => {
     totalPages,
 
     // Actions CRUD
-    fetchProducts,
-    fetchProduct,
-    createProduct,
-    updateProduct,
-    deleteProduct,
-    deleteProducts,
-    duplicateProduct,
+    fetchCollections,
+    fetchCollection,
+    createCollection,
+    updateCollection,
+    deleteCollection,
+    deleteCollections,
+    toggleActive,
+    reorderCollections,
 
-    // Actions spécifiques
-    updateStock,
-    togglePreorder,
+    // Statistiques
     fetchStatistics,
 
     // Filtres
     setPage,
     setSearch,
     setStatusFilter,
-    setStockFilter,
     resetFilters,
     reset,
   };

@@ -4,10 +4,23 @@ import type {
   PromotionStatus,
 } from "~/types/promotion";
 
+// Import des helpers communs (pas de ré-export)
+import {
+  formatPriceXOF,
+  generateRandomCode,
+  normalizeCode as normalizeHelper,
+  getDaysRemaining as getDaysRemainingHelper,
+  formatDateTimeFR,
+} from "./helpers";
+
+/* =========================================================================
+ * 🏷️ TYPES DE PROMOTIONS - Labels, Icônes, Couleurs
+ * ========================================================================= */
+
 /**
  * Retourne le label d'un type de promotion
  */
-export function getTypeLabel(type: PromotionType): string {
+export function getPromotionTypeLabel(type: PromotionType): string {
   const labels: Record<PromotionType, string> = {
     percentage: "Pourcentage",
     fixed_amount: "Montant fixe",
@@ -19,7 +32,7 @@ export function getTypeLabel(type: PromotionType): string {
 /**
  * Retourne l'icône d'un type de promotion
  */
-export function getTypeIcon(type: PromotionType): string {
+export function getPromotionTypeIcon(type: PromotionType): string {
   const icons: Record<PromotionType, string> = {
     percentage: "i-lucide-percent",
     fixed_amount: "i-lucide-coins",
@@ -31,7 +44,7 @@ export function getTypeIcon(type: PromotionType): string {
 /**
  * Retourne la couleur badge d'un type
  */
-export function getTypeColor(type: PromotionType): string {
+export function getPromotionTypeColor(type: PromotionType): string {
   const colors: Record<PromotionType, string> = {
     percentage: "primary",
     fixed_amount: "success",
@@ -39,6 +52,10 @@ export function getTypeColor(type: PromotionType): string {
   };
   return colors[type] || "neutral";
 }
+
+/* =========================================================================
+ * 📊 STATUT DE PROMOTION - Calcul & Labels
+ * ========================================================================= */
 
 /**
  * Détermine le statut d'une promotion
@@ -78,7 +95,7 @@ export function getPromotionStatus(promotion: Promotion): PromotionStatus {
 /**
  * Retourne le label d'un statut
  */
-export function getStatusLabel(status: PromotionStatus): string {
+export function getPromotionStatusLabel(status: PromotionStatus): string {
   const labels: Record<PromotionStatus, string> = {
     active: "Active",
     inactive: "Inactive",
@@ -92,7 +109,7 @@ export function getStatusLabel(status: PromotionStatus): string {
 /**
  * Retourne la couleur d'un statut
  */
-export function getStatusColor(status: PromotionStatus): string {
+export function getPromotionStatusColor(status: PromotionStatus): string {
   const colors: Record<PromotionStatus, string> = {
     active: "success",
     inactive: "neutral",
@@ -102,6 +119,34 @@ export function getStatusColor(status: PromotionStatus): string {
   };
   return colors[status];
 }
+
+/**
+ * Vérifie si une promotion est expirée
+ */
+export function isExpired(promotion: Promotion): boolean {
+  if (!promotion.expires_at) return false;
+  return new Date(promotion.expires_at) < new Date();
+}
+
+/**
+ * Vérifie si une promotion est à venir
+ */
+export function isUpcoming(promotion: Promotion): boolean {
+  if (!promotion.starts_at) return false;
+  return new Date(promotion.starts_at) > new Date();
+}
+
+/**
+ * Vérifie si une promotion est actuellement valide
+ */
+export function isCurrentlyValid(promotion: Promotion): boolean {
+  const status = getPromotionStatus(promotion);
+  return status === "active";
+}
+
+/* =========================================================================
+ * 💰 CALCULS DE RÉDUCTION
+ * ========================================================================= */
 
 /**
  * Formate une valeur de promotion pour l'affichage
@@ -119,12 +164,12 @@ export function formatPromotionValue(promotion: Promotion): string {
   }
 
   if (promotion.type === "fixed_amount") {
+    // Import depuis helpers au lieu de ré-exporter
     return formatPriceXOF(promotion.value);
   }
 
   return promotion.value.toString();
 }
-
 
 /**
  * Calcule le montant de la réduction
@@ -170,6 +215,10 @@ export function isApplicableToAmount(
   return amount >= promotion.min_purchase_amount;
 }
 
+/* =========================================================================
+ * 📈 LIMITES D'UTILISATION
+ * ========================================================================= */
+
 /**
  * Vérifie si une promotion a atteint sa limite d'utilisation
  */
@@ -191,73 +240,6 @@ export function getUsagePercentage(promotion: Promotion): number {
 }
 
 /**
- * Formate une date pour l'affichage
- */
-export function formatDate(dateString: string | null): string {
-  if (!dateString) return "—";
-
-  const date = new Date(dateString);
-  return date.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-/**
- * Calcule les jours restants
- */
-export function getDaysRemaining(dateString: string | null): number | null {
-  if (!dateString) return null;
-
-  const now = new Date();
-  const expiry = new Date(dateString);
-  const diffTime = expiry.getTime() - now.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  return diffDays > 0 ? diffDays : 0;
-}
-
-/**
- * Génère un code promo aléatoire
- */
-export function generateCode(prefix: string = "", length: number = 8): string {
-  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let code = prefix.toUpperCase();
-
-  const remaining = length - code.length;
-  for (let i = 0; i < remaining; i++) {
-    code += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-
-  return code;
-}
-
-/**
- * Normalise un code (uppercase, trim)
- */
-export function normalizeCode(code: string): string {
-  return code.trim().toUpperCase().replace(/\s+/g, "");
-}
-
-/**
- * Vérifie si un code est valide
- */
-export function isValidCode(code: string): boolean {
-  return /^[A-Z0-9]{3,50}$/.test(normalizeCode(code));
-}
-
-/**
- * Formate le montant minimum d'achat
- */
-export function formatMinPurchase(amount: number | null): string {
-  if (!amount) return "Aucun minimum";
-  return `Min. ${formatPriceXOF(amount)}`;
-}
-
-/**
  * Formate la limite d'utilisation
  */
 export function formatUsageLimit(promotion: Promotion): string {
@@ -269,29 +251,71 @@ export function formatUsageLimit(promotion: Promotion): string {
   return `${remaining} / ${promotion.usage_limit} restants`;
 }
 
+/* =========================================================================
+ * 🔧 CODES PROMO - Génération & Validation
+ * ========================================================================= */
+
 /**
- * Vérifie si une promotion est expirée
+ * Génère un code promo aléatoire
  */
-export function isExpired(promotion: Promotion): boolean {
-  if (!promotion.expires_at) return false;
-  return new Date(promotion.expires_at) < new Date();
+export function generatePromotionCode(
+  prefix: string = "",
+  length: number = 8
+): string {
+  return generateRandomCode(prefix, length);
 }
 
 /**
- * Vérifie si une promotion est à venir
+ * Normalise un code (uppercase, trim, supprime espaces)
  */
-export function isUpcoming(promotion: Promotion): boolean {
-  if (!promotion.starts_at) return false;
-  return new Date(promotion.starts_at) > new Date();
+export function normalizePromotionCode(code: string): string {
+  return normalizeHelper(code);
 }
 
 /**
- * Vérifie si une promotion est actuellement valide
+ * Vérifie si un code promo est valide (3-50 caractères, A-Z et 0-9 uniquement)
  */
-export function isCurrentlyValid(promotion: Promotion): boolean {
-  const status = getPromotionStatus(promotion);
-  return status === "active";
+export function isValidPromotionCode(code: string): boolean {
+  const normalized = normalizePromotionCode(code);
+  return /^[A-Z0-9]{3,50}$/.test(normalized);
 }
+
+/* =========================================================================
+ * 📅 DATES & FORMATAGE
+ * ========================================================================= */
+
+/**
+ * Formate une date pour l'affichage
+ */
+export function formatPromotionDate(dateString: string | null): string {
+  if (!dateString) return "—";
+  return formatDateTimeFR(dateString);
+}
+
+/**
+ * Calcule les jours restants jusqu'à une date
+ */
+export function getPromotionDaysRemaining(
+  dateString: string | null
+): number | null {
+  return getDaysRemainingHelper(dateString);
+}
+
+/* =========================================================================
+ * 💵 FORMATAGE DES MONTANTS
+ * ========================================================================= */
+
+/**
+ * Formate le montant minimum d'achat
+ */
+export function formatMinPurchase(amount: number | null): string {
+  if (!amount) return "Aucun minimum";
+  return `Min. ${formatPriceXOF(amount)}`;
+}
+
+/* =========================================================================
+ * 📝 RÉSUMÉS & DESCRIPTIONS
+ * ========================================================================= */
 
 /**
  * Crée une description de la promotion pour l'affichage

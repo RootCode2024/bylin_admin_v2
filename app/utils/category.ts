@@ -1,5 +1,9 @@
 import type { Category, CategoryLevel } from "~/types/category";
 
+/* =========================================================================
+ * 🏷️ NIVEAUX DE CATÉGORIES - Labels & Couleurs
+ * ========================================================================= */
+
 /**
  * Retourne le label d'un niveau de catégorie
  */
@@ -26,8 +30,33 @@ export function getLevelColor(level: number): string {
   return colors[level] || "neutral";
 }
 
+/* =========================================================================
+ * ✅ RÈGLES MÉTIER - Validations spécifiques aux catégories
+ * ========================================================================= */
+
+/**
+ * Vérifie si une catégorie peut avoir des enfants
+ * @note Maximum 4 niveaux (0-3), donc niveau 3 ne peut pas avoir d'enfants
+ */
+export function canHaveChildren(level: number): boolean {
+  return level < 3;
+}
+
+/**
+ * Vérifie si une catégorie peut avoir des produits
+ * @note Seules les catégories de niveau 2+ peuvent avoir des produits
+ */
+export function canHaveProducts(level: number): boolean {
+  return level >= 2;
+}
+
+/* =========================================================================
+ * 🗂️ HIÉRARCHIE & NAVIGATION - Chemins & Fil d'Ariane
+ * ========================================================================= */
+
 /**
  * Construit le chemin complet d'une catégorie
+ * Exemple: "Homme > Vêtements > T-shirts"
  */
 export function buildCategoryPath(
   categories: readonly Category[] | Category[],
@@ -93,21 +122,9 @@ export function buildBreadcrumb(
   return breadcrumb;
 }
 
-/**
- * Vérifie si une catégorie peut avoir des enfants
- */
-export function canHaveChildren(level: number): boolean {
-  // Maximum 4 niveaux (0-3), donc niveau 3 ne peut pas avoir d'enfants
-  return level < 3;
-}
-
-/**
- * Vérifie si une catégorie peut avoir des produits
- */
-export function canHaveProducts(level: number): boolean {
-  // Seules les catégories de niveau 2+ peuvent avoir des produits
-  return level >= 2;
-}
+/* =========================================================================
+ * 🔍 FILTRAGE & RECHERCHE - Par niveau, parent, etc.
+ * ========================================================================= */
 
 /**
  * Filtre les catégories par niveau
@@ -120,7 +137,7 @@ export function filterByLevel(
 }
 
 /**
- * Filtre les catégories racines
+ * Filtre les catégories racines (sans parent)
  */
 export function getRootCategories(
   categories: readonly Category[] | Category[]
@@ -129,7 +146,7 @@ export function getRootCategories(
 }
 
 /**
- * Filtre les enfants d'une catégorie
+ * Récupère les enfants directs d'une catégorie
  */
 export function getChildren(
   categories: readonly Category[] | Category[],
@@ -139,6 +156,10 @@ export function getChildren(
     .filter((c) => c.parent_id === parentId)
     .sort((a, b) => a.sort_order - b.sort_order);
 }
+
+/* =========================================================================
+ * 🌳 ARBRE HIÉRARCHIQUE - Construction & Manipulation
+ * ========================================================================= */
 
 /**
  * Construit un arbre hiérarchique récursif
@@ -157,7 +178,7 @@ export function buildTree(
 }
 
 /**
- * Aplatit un arbre hiérarchique
+ * Aplatit un arbre hiérarchique en liste
  */
 export function flattenTree(
   tree: readonly Category[] | Category[]
@@ -194,8 +215,36 @@ export function findInTree(
   return null;
 }
 
+/* =========================================================================
+ * 📊 COMPTEURS & STATISTIQUES
+ * ========================================================================= */
+
+/**
+ * Compte le nombre de descendants d'une catégorie (récursif)
+ */
+export function countDescendants(
+  categories: readonly Category[] | Category[],
+  parentId: string
+): number {
+  const children = getChildren(categories, parentId);
+  let count = children.length;
+
+  for (const child of children) {
+    count += countDescendants(categories, child.id);
+  }
+
+  return count;
+}
+
+/* =========================================================================
+ * 📋 OPTIONS POUR SELECT/DROPDOWN
+ * ========================================================================= */
+
 /**
  * Génère des options de sélection pour un select parent
+ * @param categories - Liste des catégories
+ * @param excludeId - ID à exclure (éviter les références circulaires)
+ * @param maxLevel - Niveau maximum sélectionnable
  */
 export function getCategorySelectOptions(
   categories: readonly Category[] | Category[],
@@ -226,40 +275,4 @@ export function getCategorySelectOptions(
 
   traverse(roots);
   return options;
-}
-
-/**
- * Compte le nombre de descendants d'une catégorie
- */
-export function countDescendants(
-  categories: readonly Category[] | Category[],
-  parentId: string
-): number {
-  const children = getChildren(categories, parentId);
-  let count = children.length;
-
-  for (const child of children) {
-    count += countDescendants(categories, child.id);
-  }
-
-  return count;
-}
-
-/**
- * Vérifie si une couleur est valide (format hex)
- */
-export function isValidHexColor(color: string): boolean {
-  return /^#[0-9A-F]{6}$/i.test(color);
-}
-
-/**
- * Génère une couleur aléatoire
- */
-export function randomColor(): string {
-  return (
-    "#" +
-    Math.floor(Math.random() * 16777215)
-      .toString(16)
-      .padStart(6, "0")
-  );
 }

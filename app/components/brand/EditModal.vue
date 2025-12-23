@@ -2,9 +2,7 @@
 import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import type { Brand } from '~/types/brand'
-import { buildWebsiteUrl } from '~/utils/brand'
-import { DEFAULT_IMAGE_CONFIG } from '~/utils'
-import { formatFileSize } from '~/utils'
+import { DEFAULT_IMAGE_CONFIG , buildWebsiteUrl, formatFileSize } from '~/utils/helpers'
 
 /**
  * Composant de modification de marque

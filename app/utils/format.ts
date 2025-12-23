@@ -1,77 +1,80 @@
-/* -------------------------------------------------------
- * 💰 PRIX
- * ----------------------------------------------------- */
+/* =========================================================================
+ * 💵 FORMAT - Fonctions de formatage téléphone spécialisées
+ * Note: Les autres fonctions de formatage sont dans helpers.ts
+ * ========================================================================= */
+
+/* =========================================================================
+ * 📱 FORMATAGE TÉLÉPHONE
+ * ========================================================================= */
+
+import parsePhoneNumberFromString, {
+  parsePhoneNumberWithError,
+  type CountryCode,
+} from "libphonenumber-js";
 
 /**
- * Formate un prix en Franc CFA (XOF)
- * 15000 → "15 000 FCFA"
+ * Formate un numéro de téléphone
+ * @param phone - Numéro brut ou formaté
+ * @param country - Code pays (défaut: BJ)
+ * @param format - Format de sortie (défaut: INTERNATIONAL)
  */
-export function formatPriceXOF(
-  amount: number | string,
-  options?: {
-    withSymbol?: boolean;
-    locale?: string;
+export function formatPhone(
+  phone?: string,
+  country: string = "BJ",
+  format: "INTERNATIONAL" | "NATIONAL" = "INTERNATIONAL"
+): string {
+  if (!phone) return "—";
+
+  try {
+    const phoneNumber = parsePhoneNumberFromString(
+      phone,
+      country as CountryCode
+    );
+
+    if (!phoneNumber?.isValid()) return phone;
+
+    return format === "NATIONAL"
+      ? phoneNumber.formatNational()
+      : phoneNumber.formatInternational();
+  } catch {
+    return phone;
   }
-): string {
-  const value = Number(amount);
-  if (Number.isNaN(value)) return "—";
-
-  const { withSymbol = true, locale = "fr-FR" } = options ?? {};
-
-  const formatted = new Intl.NumberFormat(locale, {
-    maximumFractionDigits: 0,
-  }).format(value);
-
-  return withSymbol ? `${formatted} FCFA` : formatted;
 }
 
 /**
- * Prix avec réduction
- * 20000, 25 → "15 000 FCFA"
+ * Formate un numéro au format E.164 (+229...)
  */
-export function formatPriceWithDiscount(
-  price: number,
-  discountPercent: number
-): string {
-  if (discountPercent <= 0) return formatPriceXOF(price);
-
-  const discounted = price - price * (discountPercent / 100);
-  return formatPriceXOF(Math.round(discounted));
-}
-
-/* -------------------------------------------------------
- * 📅 DATES
- * ----------------------------------------------------- */
-
-/**
- * Date en français
- * "2025-01-05" → "5 janvier 2025"
- */
-export function formatDateFR(
-  date: Date | string | number,
-  options?: Intl.DateTimeFormatOptions
-): string {
-  const parsed = new Date(date);
-  if (Number.isNaN(parsed.getTime())) return "—";
-
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    ...options,
-  }).format(parsed);
+export function formatPhoneNumber(countryCode: string, number: string): string {
+  try {
+    const phoneNumber = parsePhoneNumberWithError(
+      number,
+      countryCode as CountryCode
+    );
+    return phoneNumber?.format("E.164") || number;
+  } catch {
+    return number;
+  }
 }
 
 /**
- * Date + heure FR
- * "2025-01-05T14:30" → "5 janvier 2025 à 14:30"
+ * Parse un numéro stocké pour extraire le code pays et le numéro
  */
-export function formatDateTimeFR(date: Date | string | number): string {
-  const parsed = new Date(date);
-  if (Number.isNaN(parsed.getTime())) return "—";
+export function parseStoredPhone(
+  phone: string | null | undefined
+): { countryCode: string; number: string } | null {
+  if (!phone) return null;
 
-  return new Intl.DateTimeFormat("fr-FR", {
-    dateStyle: "long",
-    timeStyle: "short",
-  }).format(parsed);
+  try {
+    const phoneNumber = parsePhoneNumberWithError(phone);
+    if (phoneNumber) {
+      return {
+        countryCode: phoneNumber.country || "BJ",
+        number: phoneNumber.nationalNumber,
+      };
+    }
+  } catch {
+    // Si le parsing échoue, on retourne null
+  }
+
+  return null;
 }

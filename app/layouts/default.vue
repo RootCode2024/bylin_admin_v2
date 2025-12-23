@@ -46,7 +46,13 @@ const links = computed(() => [
       exact: true,
       badge: stats.value.products > 0 ? stats.value.products.toString() : undefined,
       onSelect: closeMenu
-    }, {
+    },{
+        label: 'Collections',
+        to: '/products/collections',
+        exact: true,
+        badge: stats.value.collections > 0 ? stats.value.collections.toString() : undefined,
+        onSelect: closeMenu
+      }, {
       label: 'Catégories',
       to: '/products/categories',
       badge: stats.value.categories > 0 ? stats.value.categories.toString() : undefined,
@@ -146,30 +152,8 @@ const groups = computed(() => [{
   })
 }])
 
-// Charger les stats au montage
 onMounted(async () => {
-  // Charger les statistiques pour les badges
   await fetchStats()
-
-  // Gestion du cookie
-  const cookie = useCookie('cookie-consent')
-  if (cookie.value === 'accepted') return
-
-  toast.add({
-    title: 'Nous utilisons des cookies pour améliorer votre expérience.',
-    duration: 0,
-    close: false,
-    actions: [{
-      label: 'Accepter',
-      color: 'neutral',
-      variant: 'outline',
-      onClick: () => { cookie.value = 'accepted' }
-    }, {
-      label: 'Refuser',
-      color: 'neutral',
-      variant: 'ghost'
-    }]
-  })
 })
 </script>
 

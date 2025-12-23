@@ -3,7 +3,7 @@ import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import type { Category } from '~/types/category'
 import { getCategorySelectOptions } from '~/utils/category'
-import { DEFAULT_IMAGE_CONFIG } from '~/utils'
+import { DEFAULT_IMAGE_CONFIG } from '~/utils/helpers'
 import { CATEGORY_ICONS } from '~/types/category'
 
 /**
