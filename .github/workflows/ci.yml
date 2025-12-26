@@ -1,34 +1,31 @@
 name: ci
 
-on: push
+on: [push, pull_request]
 
 jobs:
-  ci:
-    runs-on: ${{ matrix.os }}
+  frontend:
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        os: [ubuntu-latest]
         node: [22]
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Install node
-        uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-          cache: pnpm
+          cache: npm
 
       - name: Install dependencies
-        run: pnpm install
+        run: npm ci
 
       - name: Lint
-        run: pnpm run lint
+        run: npm run lint
 
       - name: Typecheck
-        run: pnpm run typecheck
+        run: npm run typecheck
+
+      - name: Build Nuxt
+        run: npm run build
