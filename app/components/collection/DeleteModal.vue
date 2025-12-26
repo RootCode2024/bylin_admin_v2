@@ -114,11 +114,6 @@ function handleCancel() {
           <div v-for="collection in selectedCollections" :key="collection.id"
             class="p-3 flex items-center justify-between">
             <div class="flex items-center gap-3 flex-1 min-w-0">
-              <div class="shrink-0">
-                <UAvatar v-if="collection.image_url" :src="collection.image_url" :alt="collection.name" size="sm"
-                  class="rounded-md" />
-                <UAvatar v-else icon="i-lucide-folder" size="sm" class="rounded-md bg-gray-100 dark:bg-gray-800" />
-              </div>
               <div class="min-w-0 flex-1">
                 <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
                   {{ collection.name }}

@@ -1,294 +1,230 @@
 <script setup lang="ts">
-import * as z from 'zod'
-import type { FormSubmitEvent } from '@nuxt/ui'
-import type { Brand } from '~/types/brand'
-import { DEFAULT_IMAGE_CONFIG , buildWebsiteUrl, formatFileSize } from '~/utils/helpers'
+  import * as z from 'zod'
+  import type { FormSubmitEvent } from '@nuxt/ui'
+  import type { Brand } from '~/types/brand'
+  import { DEFAULT_IMAGE_CONFIG , buildWebsiteUrl, formatFileSize } from '~/utils/helpers'
 
-/**
- * Composant de modification de marque
- *
- * Modal permettant de modifier une marque existante avec upload de logo
- * et validation complète des données
- */
+  const props = defineProps<{
+    open: boolean
+    brand: Brand | null
+  }>()
 
-// Props du composant
-const props = defineProps<{
-  open: boolean
-  brand: Brand | null
-}>()
+  const emit = defineEmits<{
+    'update:open': [boolean]
+    'updated': []
+  }>()
 
-// Événements émis par le composant
-const emit = defineEmits<{
-  'update:open': [boolean]
-  'updated': []
-}>()
+  const { updateBrand, loading } = useBrands()
 
-// Composable de gestion des marques
-const { updateBrand, loading } = useBrands()
+  const isOpen = computed({
+    get: () => props.open,
+    set: (value) => emit('update:open', value)
+  })
 
-// État du modal (v-model)
-const isOpen = computed({
-  get: () => props.open,
-  set: (value) => emit('update:open', value)
-})
+  const WEBSITE_DOMAINS = ['.com', '.fr', '.dev', '.org', '.net', '.io', '.site', '.uk'] as const
+  type WebsiteDomain = typeof WEBSITE_DOMAINS[number]
+  const selectedDomain = ref<WebsiteDomain>(WEBSITE_DOMAINS[0])
+  const websiteDomainItems = computed(() => [...WEBSITE_DOMAINS])
+  const objectUrls = new Set<string>()
 
-// Domaines disponibles pour le site web
-const WEBSITE_DOMAINS = ['.com', '.fr', '.dev', '.org', '.net', '.io', '.site', '.uk'] as const
-type WebsiteDomain = typeof WEBSITE_DOMAINS[number]
-const selectedDomain = ref<WebsiteDomain>(WEBSITE_DOMAINS[0])
+  function splitWebsite(url?: string | null): { domain: string; tld: WebsiteDomain } {
+    if (!url) return { domain: '', tld: WEBSITE_DOMAINS[0] }
 
-// Conversion pour USelectMenu
-const websiteDomainItems = computed(() => [...WEBSITE_DOMAINS])
+    const cleaned = url.replace(/^https?:\/\//, '')
+    const found = WEBSITE_DOMAINS.find(d => cleaned.endsWith(d))
 
-// URLs d'objets à nettoyer
-const objectUrls = new Set<string>()
-
-/**
- * Divise une URL complète en domaine et extension
- */
-function splitWebsite(url?: string | null): { domain: string; tld: WebsiteDomain } {
-  if (!url) return { domain: '', tld: WEBSITE_DOMAINS[0] }
-
-  const cleaned = url.replace(/^https?:\/\//, '')
-  const found = WEBSITE_DOMAINS.find(d => cleaned.endsWith(d))
-
-  return {
-    domain: found ? cleaned.replace(found, '') : cleaned,
-    tld: (found ?? WEBSITE_DOMAINS[0]) as WebsiteDomain
+    return {
+      domain: found ? cleaned.replace(found, '') : cleaned,
+      tld: (found ?? WEBSITE_DOMAINS[0]) as WebsiteDomain
+    }
   }
-}
 
-/**
- * Schéma de validation Zod pour le formulaire
- */
-const schema = z.object({
-  name: z.string()
-    .min(2, 'Le nom doit contenir au moins 2 caractères')
-    .max(100, 'Le nom ne peut pas dépasser 100 caractères')
-    .trim(),
+  const schema = z.object({
+    name: z.string()
+      .min(2, 'Le nom doit contenir au moins 2 caractères')
+      .max(100, 'Le nom ne peut pas dépasser 100 caractères')
+      .trim(),
 
-  description: z.string()
-    .max(2000, 'La description ne peut pas dépasser 2000 caractères')
-    .trim()
-    .optional()
-    .or(z.literal('')),
+    description: z.string()
+      .max(2000, 'La description ne peut pas dépasser 2000 caractères')
+      .trim()
+      .optional()
+      .or(z.literal('')),
 
-  logo: z
-    .instanceof(File, {
-      message: 'Veuillez sélectionner un fichier image.'
-    })
-    .refine(
-      (file) => file.size <= DEFAULT_IMAGE_CONFIG.maxFileSize,
-      {
-        message: `L'image est trop volumineuse. Taille maximale : ${formatFileSize(DEFAULT_IMAGE_CONFIG.maxFileSize)}.`
-      }
-    )
-    .refine(
-      (file) => DEFAULT_IMAGE_CONFIG.acceptedTypes.includes(file.type),
-      {
-        message: 'Format invalide. Formats acceptés : JPEG, PNG, WebP.'
-      }
-    )
-    .refine(
-      (file) => validateImageDimensions(file),
-      {
-        message: `Dimensions invalides. Attendues : entre ${DEFAULT_IMAGE_CONFIG.minDimensions.width}×${DEFAULT_IMAGE_CONFIG.minDimensions.height} et ${DEFAULT_IMAGE_CONFIG.maxDimensions.width}×${DEFAULT_IMAGE_CONFIG.maxDimensions.height} pixels.`
-      }
-    )
-    .optional(),
-
-  websiteDomain: z.string()
-    .max(150, 'Le domaine ne peut pas dépasser 150 caractères')
-    .trim()
-    .regex(/^[a-zA-Z0-9-]*$/, 'Le domaine ne peut contenir que des lettres, chiffres et tirets')
-    .optional()
-    .or(z.literal('')),
-
-  is_active: z.boolean().default(true),
-
-  sort_order: z.number()
-    .int('L\'ordre doit être un nombre entier')
-    .min(0, 'L\'ordre ne peut pas être négatif')
-    .max(9999, 'L\'ordre ne peut pas dépasser 9999')
-    .default(0)
-})
-
-type BrandFormSchema = z.infer<typeof schema>
-
-/**
- * État du formulaire
- */
-const state = reactive<Partial<BrandFormSchema>>({
-  name: '',
-  description: '',
-  logo: undefined,
-  websiteDomain: '',
-  is_active: true,
-  sort_order: 0
-})
-
-/**
- * Logo existant (URL depuis le backend)
- */
-const existingLogoUrl = ref<string | null>(null)
-
-/**
- * Indicateur pour supprimer le logo existant
- */
-const removeExistingLogo = ref(false)
-
-/**
- * Valide les dimensions d'une image
- */
-async function validateImageDimensions(file: File): Promise<boolean> {
-  return new Promise((resolve) => {
-    const reader = new FileReader()
-
-    reader.onload = (e) => {
-      const img = new Image()
-
-      img.onload = () => {
-        const { width, height } = img
-        const { minDimensions, maxDimensions } = DEFAULT_IMAGE_CONFIG
-
-        const isValid =
-          width >= minDimensions.width &&
-          height >= minDimensions.height &&
-          width <= maxDimensions.width &&
-          height <= maxDimensions.height
-
-        resolve(isValid)
-      }
-
-      img.onerror = () => resolve(false)
-      img.src = e.target?.result as string
-    }
-
-    reader.onerror = () => resolve(false)
-    reader.readAsDataURL(file)
-  })
-}
-
-/**
- * Crée une URL d'objet pour l'aperçu et la stocke pour nettoyage
- */
-function createPreviewUrl(file: File): string {
-  const url = URL.createObjectURL(file)
-  objectUrls.add(url)
-  return url
-}
-
-/**
- * Nettoie toutes les URLs d'objets créées
- */
-function cleanupObjectUrls(): void {
-  objectUrls.forEach(url => URL.revokeObjectURL(url))
-  objectUrls.clear()
-}
-
-/**
- * Supprime le logo (nouveau ou existant)
- */
-function removeLogo(): void {
-  state.logo = undefined
-  existingLogoUrl.value = null
-  removeExistingLogo.value = true
-}
-
-/**
- * Réinitialise le formulaire avec les données de la marque
- */
-function resetFormWithBrand(brand: Brand): void {
-  const website = splitWebsite(brand.website)
-
-  Object.assign(state, {
-    name: brand.name,
-    description: brand.description ?? '',
-    websiteDomain: website.domain,
-    is_active: brand.is_active,
-    sort_order: brand.sort_order,
-    logo: undefined
-  })
-
-  selectedDomain.value = website.tld
-  existingLogoUrl.value = brand.logo_url ?? null
-  removeExistingLogo.value = false
-
-  cleanupObjectUrls()
-}
-
-/**
- * Gestionnaire de soumission du formulaire
- */
-async function onSubmit(event: FormSubmitEvent<BrandFormSchema>): Promise<void> {
-  if (!props.brand) return
-
-  try {
-    const formData = new FormData()
-
-    // Champs obligatoires
-    formData.append('name', event.data.name)
-    formData.append('is_active', event.data.is_active ? '1' : '0')
-    formData.append('sort_order', String(event.data.sort_order))
-
-    // Champs optionnels
-    if (event.data.description) {
-      formData.append('description', event.data.description)
-    }
-
-    if (event.data.logo) {
-      formData.append('logo', event.data.logo)
-    }
-
-    // Construction de l'URL complète du site web
-    if (event.data.websiteDomain) {
-      const websiteUrl = buildWebsiteUrl(
-        event.data.websiteDomain,
-        selectedDomain.value
+    logo: z
+      .instanceof(File, {
+        message: 'Veuillez sélectionner un fichier image.'
+      })
+      .refine(
+        (file) => file.size <= DEFAULT_IMAGE_CONFIG.maxFileSize,
+        {
+          message: `L'image est trop volumineuse. Taille maximale : ${formatFileSize(DEFAULT_IMAGE_CONFIG.maxFileSize)}.`
+        }
       )
-      formData.append('website', websiteUrl)
-    }
+      .refine(
+        (file) => DEFAULT_IMAGE_CONFIG.acceptedTypes.includes(file.type),
+        {
+          message: 'Format invalide. Formats acceptés : JPEG, PNG, WebP.'
+        }
+      )
+      .refine(
+        (file) => validateImageDimensions(file),
+        {
+          message: `Dimensions invalides. Attendues : entre ${DEFAULT_IMAGE_CONFIG.minDimensions.width}×${DEFAULT_IMAGE_CONFIG.minDimensions.height} et ${DEFAULT_IMAGE_CONFIG.maxDimensions.width}×${DEFAULT_IMAGE_CONFIG.maxDimensions.height} pixels.`
+        }
+      )
+      .optional(),
 
-    // Suppression du logo existant si demandé
-    if (removeExistingLogo.value) {
-      formData.append('remove_logo', '1')
-    }
+    websiteDomain: z.string()
+      .max(150, 'Le domaine ne peut pas dépasser 150 caractères')
+      .trim()
+      .regex(/^[a-zA-Z0-9-]*$/, 'Le domaine ne peut contenir que des lettres, chiffres et tirets')
+      .optional()
+      .or(z.literal('')),
 
-    // Tentative de mise à jour
-    const success = await updateBrand(props.brand.id, formData)
+    is_active: z.boolean().default(true),
 
-    if (success) {
-      isOpen.value = false
-      emit('updated')
-      cleanupObjectUrls()
-    }
-  } catch (error) {
-    console.error('Erreur lors de la mise à jour de la marque:', error)
+    sort_order: z.number()
+      .int('L\'ordre doit être un nombre entier')
+      .min(0, 'L\'ordre ne peut pas être négatif')
+      .max(9999, 'L\'ordre ne peut pas dépasser 9999')
+      .default(0)
+  })
+
+  type BrandFormSchema = z.infer<typeof schema>
+  const existingLogoUrl = ref<string | null>(null)
+  const removeExistingLogo = ref(false)
+
+  const state = reactive<Partial<BrandFormSchema>>({
+    name: '',
+    description: '',
+    logo: undefined,
+    websiteDomain: '',
+    is_active: true,
+    sort_order: 0
+  })
+
+  async function validateImageDimensions(file: File): Promise<boolean> {
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+
+      reader.onload = (e) => {
+        const img = new Image()
+
+        img.onload = () => {
+          const { width, height } = img
+          const { minDimensions, maxDimensions } = DEFAULT_IMAGE_CONFIG
+
+          const isValid =
+            width >= minDimensions.width &&
+            height >= minDimensions.height &&
+            width <= maxDimensions.width &&
+            height <= maxDimensions.height
+
+          resolve(isValid)
+        }
+
+        img.onerror = () => resolve(false)
+        img.src = e.target?.result as string
+      }
+
+      reader.onerror = () => resolve(false)
+      reader.readAsDataURL(file)
+    })
   }
-}
 
-/**
- * Gestionnaire de fermeture du modal
- */
-function handleModalClose(): void {
-  cleanupObjectUrls()
-}
-
-/**
- * Watcher : Initialise le formulaire quand le modal s'ouvre
- */
-watch(isOpen, (value) => {
-  if (value && props.brand) {
-    resetFormWithBrand(props.brand)
+  function createPreviewUrl(file: File): string {
+    const url = URL.createObjectURL(file)
+    objectUrls.add(url)
+    return url
   }
-})
 
-/**
- * Nettoyage lors de la destruction du composant
- */
-onBeforeUnmount(() => {
-  cleanupObjectUrls()
-})
+  function cleanupObjectUrls(): void {
+    objectUrls.forEach(url => URL.revokeObjectURL(url))
+    objectUrls.clear()
+  }
+
+  function removeLogo(): void {
+    state.logo = undefined
+    existingLogoUrl.value = null
+    removeExistingLogo.value = true
+  }
+
+  function resetFormWithBrand(brand: Brand): void {
+    const website = splitWebsite(brand.website)
+
+    Object.assign(state, {
+      name: brand.name,
+      description: brand.description ?? '',
+      websiteDomain: website.domain,
+      is_active: brand.is_active,
+      sort_order: brand.sort_order,
+      logo: undefined
+    })
+
+    selectedDomain.value = website.tld
+    existingLogoUrl.value = brand.logo_url ?? null
+    removeExistingLogo.value = false
+
+    cleanupObjectUrls()
+  }
+
+  async function onSubmit(event: FormSubmitEvent<BrandFormSchema>): Promise<void> {
+    if (!props.brand) return
+
+    try {
+      const formData = new FormData()
+
+      formData.append('_method', 'PUT')
+
+      formData.append('name', event.data.name)
+      formData.append('is_active', event.data.is_active ? '1' : '0')
+      formData.append('sort_order', String(event.data.sort_order))
+
+      if (event.data.description) {
+        formData.append('description', event.data.description)
+      }
+
+      if (event.data.logo) {
+        formData.append('logo', event.data.logo)
+      }
+
+      if (event.data.websiteDomain) {
+        const websiteUrl = buildWebsiteUrl(
+          event.data.websiteDomain,
+          selectedDomain.value
+        )
+        formData.append('website', websiteUrl)
+      }
+
+      if (removeExistingLogo.value) {
+        formData.append('remove_logo', '1')
+      }
+
+      const success = await updateBrand(props.brand.id, formData)
+
+      if (success) {
+        isOpen.value = false
+        emit('updated')
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de la marque:', error)
+    }
+  }
+
+  function handleModalClose(): void {
+    cleanupObjectUrls()
+  }
+
+  watch(isOpen, (value) => {
+    if (value && props.brand) {
+      resetFormWithBrand(props.brand)
+    }
+  })
+
+  onBeforeUnmount(() => {
+    cleanupObjectUrls()
+  })
 </script>
 
 <template>
@@ -314,6 +250,7 @@ onBeforeUnmount(() => {
           <UFileUpload v-slot="{ open: openFileDialog, removeFile }" v-model="state.logo"
             :accept="DEFAULT_IMAGE_CONFIG.acceptedTypes.join(',')">
             <div class="flex flex-wrap items-center gap-3">
+
               <!-- Aperçu du logo -->
               <UAvatar size="lg" :src="state.logo
                 ? createPreviewUrl(state.logo)
@@ -336,9 +273,9 @@ onBeforeUnmount(() => {
           </UFileUpload>
         </UFormField>
 
-        <!-- Site web avec sélecteur de domaine -->
+        <!-- Site web -->
         <UFormField label="Site web" name="websiteDomain"
-          description="Nom de domaine sans le protocole ni l'extension (exemple: monsite)">
+          description="Nom de domaine">
           <UFieldGroup>
             <UInput v-model="state.websiteDomain" placeholder="exemple" :ui="{
               base: 'pl-16',
@@ -376,7 +313,7 @@ onBeforeUnmount(() => {
           </template>
         </UFormField>
 
-        <!-- Actions du formulaire -->
+        <!-- Actions -->
         <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
           <UButton label="Annuler" color="neutral" variant="ghost" @click="isOpen = false" :disabled="loading" />
           <UButton label="Enregistrer" color="primary" type="submit" :loading="loading" icon="i-lucide-check" />

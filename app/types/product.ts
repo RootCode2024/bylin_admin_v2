@@ -152,6 +152,7 @@ export interface Product {
   // Relations (Eager Loading)
   brand?: Brand | null;
   categories?: Category[];
+  collection_id?: string;
   variations?: ProductVariation[];
   media?: Media[]; // Spatie Media Library
   thumbnail_url?: string; // Helper souvent ajouté par l'API Resource
@@ -215,6 +216,7 @@ export interface ProductFilters {
   status?: ProductStatus | "all";
   brand_id?: string;
   category_id?: string;
+  collection_id?: string;
   is_featured?: boolean;
   in_stock?: boolean;
   is_preorder?: boolean;

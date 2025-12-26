@@ -13,10 +13,6 @@ export const useProduct = () => {
   const client = useSanctumClient();
   const toast = useToast();
 
-  // ============================================================================
-  // ÉTAT UNIFIÉ (useState pour SSR)
-  // ============================================================================
-
   const state = useState<{
     products: Product[];
     currentProduct: Product | null;
@@ -37,6 +33,7 @@ export const useProduct = () => {
       status: undefined,
       brand_id: undefined,
       category_id: undefined,
+      collection_id: undefined,
       in_stock: undefined,
       is_preorder: undefined,
       is_featured: undefined,
@@ -54,12 +51,10 @@ export const useProduct = () => {
   // COMPUTED
   // ============================================================================
 
-  const isLoading = computed(() => state.value.loadingState === "loading");
-  // CORRECTION : Exposer les produits via un computed résout souvent les soucis de type readonly
-  // et permet d'utiliser :data="products" directement dans la table
   const products = computed(() => state.value.products);
   const hasData = computed(() => state.value.products.length > 0);
   const hasError = computed(() => state.value.loadingState === "error");
+  const isLoading = computed(() => state.value.loadingState === "loading");
 
   const totalPages = computed(() => state.value.pagination?.last_page || 1);
 
@@ -70,6 +65,7 @@ export const useProduct = () => {
         f.status ||
         f.brand_id ||
         f.category_id ||
+        f.collection_id ||
         f.in_stock !== undefined ||
         f.is_preorder !== undefined ||
         f.is_featured !== undefined ||
@@ -81,9 +77,6 @@ export const useProduct = () => {
   // ACTIONS CRUD
   // ============================================================================
 
-  /**
-   * Récupère la liste des produits avec les filtres actuels
-   */
   async function fetchProducts(): Promise<void> {
     state.value.loadingState = "loading";
     state.value.error = null;
@@ -97,26 +90,19 @@ export const useProduct = () => {
         sort_order: state.value.filters.sort_order,
       };
 
-      if (state.value.filters.status)
-        params.status = state.value.filters.status;
-      if (state.value.filters.brand_id)
-        params.brand_id = state.value.filters.brand_id;
-      if (state.value.filters.category_id)
-        params.category_id = state.value.filters.category_id;
-      if (state.value.filters.in_stock !== undefined)
-        params.in_stock = state.value.filters.in_stock ? 1 : 0;
-      if (state.value.filters.is_preorder !== undefined)
-        params.is_preorder = state.value.filters.is_preorder ? 1 : 0;
-      if (state.value.filters.is_featured !== undefined)
-        params.is_featured = state.value.filters.is_featured ? 1 : 0;
       if (state.value.filters.with_trashed) params.with_trashed = 1;
+      if (state.value.filters.status) params.status = state.value.filters.status;
+      if (state.value.filters.brand_id) params.brand_id = state.value.filters.brand_id;
+      if (state.value.filters.category_id) params.category_id = state.value.filters.category_id;
+      if (state.value.filters.collection_id) params.collection_id = state.value.filters.collection_id;
+      if (state.value.filters.in_stock !== undefined) params.in_stock = state.value.filters.in_stock ? 1 : 0;
+      if (state.value.filters.is_preorder !== undefined) params.is_preorder = state.value.filters.is_preorder ? 1 : 0;
+      if (state.value.filters.is_featured !== undefined) params.is_featured = state.value.filters.is_featured ? 1 : 0;
 
       const response = await client<ApiResponse<LaravelPaginator<Product>>>(
         "/api/v1/admin/products",
         { method: "GET", params }
       );
-
-      console.log('La liste des produits : ', response)
 
       if (response.success) {
         state.value.products = response.data.data;
@@ -133,9 +119,6 @@ export const useProduct = () => {
     }
   }
 
-  /**
-   * Récupère un produit par ID
-   */
   async function fetchProduct(id: string): Promise<Product | null> {
     state.value.loadingState = "loading";
     state.value.error = null;
@@ -160,9 +143,6 @@ export const useProduct = () => {
     }
   }
 
-  /**
-   * Crée un produit
-   */
   async function createProduct(data: ProductFormData): Promise<Product | null> {
     state.value.loadingState = "loading";
     state.value.error = null;
@@ -176,13 +156,6 @@ export const useProduct = () => {
       );
 
       if (response.success) {
-        toast.add({
-          title: "Succès",
-          description: "Produit créé avec succès",
-          color: "success",
-          icon: "i-lucide-check-circle",
-        });
-
         state.value.loadingState = "success";
         await fetchProducts();
         return response.data;
@@ -192,13 +165,10 @@ export const useProduct = () => {
       state.value.loadingState = "error";
       state.value.error = error.message;
       handleValidationErrors(error);
-      return null;
+      throw error;
     }
   }
 
-  /**
-   * Met à jour un produit
-   */
   async function updateProduct(
     id: string,
     data: Partial<ProductFormData>
@@ -216,13 +186,6 @@ export const useProduct = () => {
       );
 
       if (response.success) {
-        toast.add({
-          title: "Succès",
-          description: "Produit mis à jour",
-          color: "success",
-          icon: "i-lucide-check-circle",
-        });
-
         state.value.currentProduct = response.data;
         state.value.loadingState = "success";
 
@@ -242,16 +205,10 @@ export const useProduct = () => {
     }
   }
 
-  /**
-   * Supprime un produit
-   */
   async function deleteProduct(id: string): Promise<boolean> {
     return deleteProducts([id]);
   }
 
-  /**
-   * Supprime plusieurs produits
-   */
   async function deleteProducts(ids: string[]): Promise<boolean> {
     if (ids.length === 0) return false;
 
@@ -270,13 +227,6 @@ export const useProduct = () => {
       const response = await client<ApiResponse<null>>(url, { method, body });
 
       if (response.success) {
-        toast.add({
-          title: "Suppression réussie",
-          description: `${ids.length} produit(s) supprimé(s)`,
-          color: "success",
-          icon: "i-lucide-trash-2",
-        });
-
         state.value.loadingState = "success";
         await fetchProducts();
         return true;
@@ -290,9 +240,6 @@ export const useProduct = () => {
     }
   }
 
-  /**
-   * Duplique un produit
-   */
   async function duplicateProduct(id: string): Promise<Product | null> {
     state.value.loadingState = "loading";
 
@@ -303,12 +250,6 @@ export const useProduct = () => {
       );
 
       if (response.success) {
-        toast.add({
-          title: "Produit dupliqué",
-          color: "success",
-          icon: "i-lucide-copy",
-        });
-
         state.value.loadingState = "success";
         await fetchProducts();
         return response.data;
@@ -349,12 +290,6 @@ export const useProduct = () => {
         if (item) {
           item.stock_quantity = response.data.stock_quantity;
         }
-
-        toast.add({
-          title: "Stock mis à jour",
-          color: "success",
-          icon: "i-lucide-package-check",
-        });
         return true;
       }
       return false;
@@ -381,10 +316,6 @@ export const useProduct = () => {
           state.value.currentProduct = response.data;
         }
 
-        toast.add({
-          title: `Précommande ${enable ? "activée" : "désactivée"}`,
-          color: "success",
-        });
         return true;
       }
       return false;
@@ -437,12 +368,19 @@ export const useProduct = () => {
     fetchProducts();
   }
 
+  function setCollectionFilter(collectionId: string | null) {
+    state.value.filters.collection_id = collectionId || undefined;
+    state.value.filters.page = 1;
+    fetchProducts();
+  }
+
   function resetFilters() {
     state.value.filters = {
       search: "",
       status: undefined,
       brand_id: undefined,
       category_id: undefined,
+      collection_id: undefined,
       in_stock: undefined,
       is_preorder: undefined,
       is_featured: undefined,
@@ -470,6 +408,7 @@ export const useProduct = () => {
         status: undefined,
         brand_id: undefined,
         category_id: undefined,
+        collection_id: undefined,
         in_stock: undefined,
         is_preorder: undefined,
         is_featured: undefined,
@@ -525,7 +464,8 @@ export const useProduct = () => {
     for (const property in obj) {
       if (
         !Object.prototype.hasOwnProperty.call(obj, property) ||
-        obj[property] === undefined
+        obj[property] === undefined ||
+        obj[property] === null
       ) {
         continue;
       }
@@ -540,13 +480,17 @@ export const useProduct = () => {
       ) {
         fd.append(formKey, obj[property]);
       } else if (Array.isArray(obj[property])) {
+        if (obj[property].length === 0) {
+          continue;
+        }
+
         obj[property].forEach((item: any, index: number) => {
           if (item instanceof File) {
             fd.append(`${formKey}[]`, item);
-          } else if (typeof item === "object") {
+          } else if (typeof item === "object" && item !== null) {
             objectToFormData(item, fd, `${formKey}[${index}]`);
           } else {
-            fd.append(`${formKey}[]`, item);
+            fd.append(`${formKey}[]`, String(item));
           }
         });
       } else if (typeof obj[property] === "object" && obj[property] !== null) {
@@ -565,8 +509,6 @@ export const useProduct = () => {
   // ============================================================================
   return {
     state,
-
-    // CORRECTION : Utiliser ceci dans votre template <UTable :data="products" ... />
     products,
 
     // Computed
@@ -595,6 +537,7 @@ export const useProduct = () => {
     setSearch,
     setStatusFilter,
     setStockFilter,
+    setCollectionFilter,
     resetFilters,
     reset,
   };

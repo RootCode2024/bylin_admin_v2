@@ -90,15 +90,16 @@ const columns: TableColumn<Collection>[] = [
     header: 'Collection',
     cell: ({ row }) => {
       const collection = row.original
-      const image = collection.image_url
+      // ✅ CHANGEMENT: Utiliser cover_image_url au lieu de image_url
+      const coverImage = collection.cover_image_url
 
       return h('div', {
         class: 'flex items-center gap-3 cursor-pointer group min-w-[250px]',
         onClick: () => navigateTo(`/products/collections/${collection.id}`)
       }, [
-        image
+        coverImage
           ? h(UAvatar, {
-            src: image,
+            src: coverImage,
             alt: collection.name,
             size: 'lg',
             class: 'ring-1 ring-gray-200 dark:ring-gray-800 transition-transform group-hover:scale-105 rounded-md'

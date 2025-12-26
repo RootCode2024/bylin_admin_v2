@@ -13,7 +13,7 @@ export const useCollections = () => {
   const toast = useToast();
 
   // ============================================================================
-  // ÉTAT UNIFIÉ (useState pour SSR)
+  // ÉTAT
   // ============================================================================
 
   const state = useState<{
@@ -65,9 +65,6 @@ export const useCollections = () => {
   // ACTIONS CRUD
   // ============================================================================
 
-  /**
-   * Récupère la liste des collections
-   */
   async function fetchCollections(): Promise<void> {
     state.value.loadingState = "loading";
     state.value.error = null;
@@ -91,11 +88,10 @@ export const useCollections = () => {
         params.with_trashed = 1;
       }
 
-      // ✅ CORRECTION: Type de réponse adapté à ApiController
       interface ApiPaginatedResponse {
         success: boolean;
         message: string;
-        data: Collection[]; // Les items directement dans data
+        data: Collection[];
         meta: {
           current_page: number;
           last_page: number;
@@ -111,11 +107,11 @@ export const useCollections = () => {
         { method: "GET", params }
       );
 
+      console.log('Fetched collections response:', response);
+
       if (response.success) {
-        // ✅ Les données sont directement dans response.data
         state.value.collections = response.data;
 
-        // ✅ Créer un objet pagination compatible avec le reste du code
         state.value.pagination = {
           data: response.data,
           current_page: response.meta.current_page,
@@ -124,7 +120,6 @@ export const useCollections = () => {
           total: response.meta.total,
           from: response.meta.from,
           to: response.meta.to,
-          // Valeurs par défaut pour les autres champs requis
           first_page_url: "",
           last_page_url: "",
           next_page_url: null,
@@ -145,9 +140,6 @@ export const useCollections = () => {
     }
   }
 
-  /**
-   * Récupère une collection par ID
-   */
   async function fetchCollection(id: string): Promise<Collection | null> {
     state.value.loadingState = "loading";
     state.value.error = null;
@@ -172,9 +164,6 @@ export const useCollections = () => {
     }
   }
 
-  /**
-   * Crée une collection
-   */
   async function createCollection(
     data: CollectionFormData
   ): Promise<Collection | null> {
@@ -210,9 +199,6 @@ export const useCollections = () => {
     }
   }
 
-  /**
-   * Met à jour une collection
-   */
   async function updateCollection(
     id: string,
     data: Partial<CollectionFormData>
@@ -256,16 +242,10 @@ export const useCollections = () => {
     }
   }
 
-  /**
-   * Supprime une collection
-   */
   async function deleteCollection(id: string): Promise<boolean> {
     return deleteCollections([id]);
   }
 
-  /**
-   * Supprime plusieurs collections
-   */
   async function deleteCollections(ids: string[]): Promise<boolean> {
     if (ids.length === 0) return false;
 
@@ -304,83 +284,70 @@ export const useCollections = () => {
     }
   }
 
-  /**
-   * Bascule le statut actif d'une collection
-   */
-async function toggleActive(id: string): Promise<boolean> {
-  try {
-    console.log("[toggleActive] Start", { id });
-    state.value.loadingState = "loading";
+  async function toggleActive(id: string): Promise<boolean> {
+    try {
+      state.value.loadingState = "loading";
 
-    const response = await client<ApiResponse<Collection>>(
-      `/api/v1/admin/collections/${id}/toggle-active`,
-      { method: "POST" }
-    );
+      const response = await client<ApiResponse<Collection>>(
+        `/api/v1/admin/collections/${id}/toggle-active`,
+        { method: "POST" }
+      );
 
-    console.log("[toggleActive] Response", response);
+      if (response.success) {
+        const index = state.value.collections.findIndex((c) => c.id === id);
+        if (index !== -1) {
+          state.value.collections = [
+            ...state.value.collections.slice(0, index),
+            response.data,
+            ...state.value.collections.slice(index + 1),
+          ];
+        }
 
-    if (response.success) {
-      // Mise à jour dans la liste
-      const index = state.value.collections.findIndex((c) => c.id === id);
-      if (index !== -1) {
-        state.value.collections = [
-          ...state.value.collections.slice(0, index),
-          response.data,
-          ...state.value.collections.slice(index + 1),
-        ];
+        if (state.value.currentCollection?.id === id) {
+          state.value.currentCollection = { ...response.data };
+        }
+
+        state.value.loadingState = "success";
+
+        toast.add({
+          title: "Succès",
+          description: response.message,
+          color: "success",
+          icon: "i-lucide-check-circle",
+        });
+
+        return true;
       }
 
-      // Mise à jour de currentCollection
-      if (state.value.currentCollection?.id === id) {
-        state.value.currentCollection = { ...response.data };
-      }
-
-      state.value.loadingState = "success";
+      state.value.loadingState = "error";
 
       toast.add({
-        title: "Succès",
-        description: response.message,
-        color: "success",
-        icon: "i-lucide-check-circle",
+        title: "Erreur",
+        description: response.message || "Échec du changement de statut",
+        color: "error",
       });
 
-      return true;
+      return false;
+    } catch (error: any) {
+      state.value.loadingState = "error";
+
+      const errorMessage =
+        error.response?._data?.message ||
+        error.data?.message ||
+        error.message ||
+        "Erreur lors du changement de statut";
+
+      toast.add({
+        title: "Erreur",
+        description: errorMessage,
+        color: "error",
+        icon: "i-lucide-alert-triangle",
+      });
+
+      return false;
     }
-
-    state.value.loadingState = "error";
-
-    toast.add({
-      title: "Erreur",
-      description: response.message || "Échec du changement de statut",
-      color: "error",
-    });
-
-    return false;
-  } catch (error: any) {
-    console.error("[toggleActive] Error", error);
-    state.value.loadingState = "error";
-
-    // ✅ Meilleur message d'erreur
-    const errorMessage =
-      error.response?._data?.message ||
-      error.data?.message ||
-      error.message ||
-      "Erreur lors du changement de statut";
-
-    toast.add({
-      title: "Erreur",
-      description: errorMessage,
-      color: "error",
-      icon: "i-lucide-alert-triangle",
-    });
-
-    return false;
   }
-}
 
-  /**
-   * Réorganise les collections
-   */
   async function reorderCollections(orderedIds: string[]): Promise<boolean> {
     try {
       const response = await client<ApiResponse<null>>(
@@ -408,9 +375,6 @@ async function toggleActive(id: string): Promise<boolean> {
     }
   }
 
-  /**
-   * Récupère les statistiques
-   */
   async function fetchStatistics(): Promise<void> {
     try {
       const response = await client<ApiResponse<CollectionStatistics>>(
@@ -481,7 +445,87 @@ async function toggleActive(id: string): Promise<boolean> {
   }
 
   // ============================================================================
-  // HELPERS
+  // HELPERS - IMAGE MANAGEMENT
+  // ============================================================================
+
+  /**
+   * Remove an image from a collection
+   * @param id Collection ID
+   * @param imageField 'cover_image' or 'banner_image'
+   */
+  async function removeImage(
+    id: string,
+    imageField: "cover_image" | "banner_image"
+  ): Promise<boolean> {
+    try {
+      state.value.loadingState = "loading";
+
+      const data: Record<string, any> = {};
+      data[`${imageField}_to_delete`] = true;
+
+      const result = await updateCollection(id, data);
+
+      if (result) {
+        toast.add({
+          title: "Image supprimée",
+          description: "L'image a été supprimée avec succès",
+          color: "success",
+          icon: "i-lucide-trash-2",
+        });
+
+        state.value.loadingState = "success";
+        return true;
+      }
+
+      return false;
+    } catch (error: any) {
+      state.value.loadingState = "error";
+      handleError(error, "Erreur lors de la suppression de l'image");
+      return false;
+    }
+  }
+
+  /**
+   * Update a collection image
+   * @param id Collection ID
+   * @param imageField 'cover_image' or 'banner_image'
+   * @param file New image file
+   */
+  async function updateImage(
+    id: string,
+    imageField: "cover_image" | "banner_image",
+    file: File
+  ): Promise<boolean> {
+    try {
+      state.value.loadingState = "loading";
+
+      const data: Record<string, any> = {};
+      data[imageField] = file;
+
+      const result = await updateCollection(id, data);
+
+      if (result) {
+        toast.add({
+          title: "Image mise à jour",
+          description: "L'image a été mise à jour avec succès",
+          color: "success",
+          icon: "i-lucide-image",
+        });
+
+        state.value.loadingState = "success";
+        return true;
+      }
+
+      return false;
+    } catch (error: any) {
+      state.value.loadingState = "error";
+      handleError(error, "Erreur lors de la mise à jour de l'image");
+      return false;
+    }
+  }
+
+  // ============================================================================
+  // HELPERS - GENERAL
   // ============================================================================
 
   function handleValidationErrors(error: any): void {
@@ -515,6 +559,9 @@ async function toggleActive(id: string): Promise<boolean> {
     });
   }
 
+  /**
+   * Enhanced objectToFormData with better handling for files and deletion flags
+   */
   function objectToFormData(
     obj: any,
     form?: FormData,
@@ -531,6 +578,12 @@ async function toggleActive(id: string): Promise<boolean> {
       }
 
       const formKey = namespace ? `${namespace}[${property}]` : property;
+
+      // Handle deletion flags (e.g., cover_image_to_delete)
+      if (property.endsWith("_to_delete") && obj[property] === true) {
+        fd.append(formKey, "1");
+        continue;
+      }
 
       if (obj[property] instanceof Date) {
         fd.append(formKey, obj[property].toISOString());
@@ -583,6 +636,10 @@ async function toggleActive(id: string): Promise<boolean> {
     deleteCollections,
     toggleActive,
     reorderCollections,
+
+    // Image Management
+    removeImage,
+    updateImage,
 
     // Statistiques
     fetchStatistics,

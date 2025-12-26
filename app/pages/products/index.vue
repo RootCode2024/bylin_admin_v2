@@ -4,6 +4,7 @@ import { upperFirst } from 'scule'
 import type { Product, ProductStatus } from '~/types/product'
 import type { Table as TanstackTable } from '@tanstack/table-core'
 import { getProductStatusLabel, getProductStatusColor } from '~/types/product'
+import type { Collection } from '~/types/collection'
 
 definePageMeta({
   layout: 'default',
@@ -27,20 +28,23 @@ const UIcon = resolveComponent('UIcon')
 // ========================================
 const toast = useToast()
 const router = useRouter()
+const route = useRoute()
 
 const {
   state,
   isLoading,
   fetchProducts,
-  deleteProduct,
   deleteProducts,
   duplicateProduct,
   setSearch,
   setStatusFilter,
   setStockFilter,
+  setCollectionFilter,
   resetFilters,
   setPage
 } = useProduct()
+
+const { fetchCollection } = useCollections()
 
 // ========================================
 // État local UI
@@ -48,10 +52,13 @@ const {
 const table = useTemplateRef<{ tableApi: TanstackTable<Product> }>('table')
 const rowSelection = ref<Record<string, boolean>>({})
 
-// Filtres UI locaux (synchronisés avec le state global via watchers)
+// Filtres UI locaux
 const localSearch = ref<string>(state.value.filters.search || '')
 const localStatus = ref<ProductStatus | 'all'>(state.value.filters.status || 'all')
 const localStock = ref<'all' | 'in_stock' | 'out_of_stock'>('all')
+
+// État pour la collection filtrée
+const filteredCollection = ref<Collection | null>(null)
 
 // Modales
 const isDeleteModalOpen = ref(false)
@@ -74,14 +81,6 @@ const stockLabels = {
   all: 'Tout le stock',
   in_stock: 'En stock',
   out_of_stock: 'Épuisé'
-}
-
-// Helper pour format monétaire
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR'
-  }).format(price)
 }
 
 // ========================================
@@ -287,22 +286,17 @@ function openDeleteModal(ids: string[]) {
   isDeleteModalOpen.value = true
 }
 
-async function handleDeleteConfirm() {
-  const success = await deleteProducts(idsToDelete.value)
-
-  if (success) {
-    isDeleteModalOpen.value = false
-    rowSelection.value = {}
-  }
+function clearCollectionFilter() {
+  filteredCollection.value = null
+  setCollectionFilter(null)
+  router.push({ query: { ...route.query, collection_id: undefined } })
 }
 
-/**
- * Réinitialise tous les filtres
- */
 function handleReset() {
   localSearch.value = ''
   localStatus.value = 'all'
   localStock.value = 'all'
+  clearCollectionFilter()
   resetFilters()
 }
 
@@ -345,124 +339,105 @@ watch(localStock, (val) => {
   setStockFilter(val)
 })
 
+watch(
+  () => route.query.collection_id,
+  async (collectionId) => {
+    if (collectionId && typeof collectionId === 'string') {
+
+      const collection = await fetchCollection(collectionId)
+      if (collection) {
+        filteredCollection.value = collection
+        setCollectionFilter(collectionId)
+      }
+    } else {
+      filteredCollection.value = null
+      setCollectionFilter(null)
+    }
+  },
+  { immediate: true }
+)
+
 // Chargement initial
 onMounted(() => {
-  fetchProducts()
+  if (!route.query.collection_id) {
+    fetchProducts()
+  }
 })
 </script>
 
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar
-        title="Produits"
-        :badge="state.pagination?.total || 0"
-      >
+      <UDashboardNavbar title="Produits" :badge="state.pagination?.total || 0">
         <template #right>
-          <UButton
-            label="Nouveau produit"
-            icon="i-lucide-plus"
-            color="primary"
-            to="/products/create"
-          />
+          <UButton label="Nouveau produit" icon="i-lucide-plus" color="primary" to="/products/create" />
         </template>
       </UDashboardNavbar>
     </template>
 
     <template #body>
+      <!-- Badge filtre collection -->
+      <UAlert v-if="filteredCollection" color="primary" variant="subtle" icon="i-lucide-filter" class="mb-4">
+        <template #title>
+          <div class="flex items-center justify-between">
+            <span class="text-sm">
+              Filtré par collection :
+              <span class="font-semibold">{{ filteredCollection.name }}</span>
+            </span>
+            <UButton icon="i-lucide-x" color="primary" variant="ghost" size="xs" @click="clearCollectionFilter" />
+          </div>
+        </template>
+      </UAlert>
+
       <!-- Toolbar -->
       <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-2 w-full lg:w-auto flex-wrap">
-          <UInput
-            v-model="localSearch"
-            icon="i-lucide-search"
-            placeholder="Rechercher (Nom, SKU, Tags)..."
-            class="w-full sm:w-72"
-            :ui="{ trailing: 'pointer-events-auto' }"
-          >
+          <UInput v-model="localSearch" icon="i-lucide-search" placeholder="Rechercher (Nom, SKU, Tags)..."
+            class="w-full sm:w-72" :ui="{ trailing: 'pointer-events-auto' }">
             <template #trailing v-if="localSearch">
-              <UButton
-                color="neutral"
-                variant="link"
-                icon="i-lucide-x"
-                :padded="false"
-                @click="localSearch = ''"
-              />
+              <UButton color="neutral" variant="link" icon="i-lucide-x" :padded="false" @click="localSearch = ''" />
             </template>
           </UInput>
 
-          <USelectMenu
-            v-model="localStatus"
-            :items="Object.entries(statusLabels).map(([v, l]) => ({
-              label: l,
-              value: v
-            }))"
-            value-key="value"
-            label-key="label"
-            class="w-40"
-          />
+          <USelectMenu v-model="localStatus" :items="Object.entries(statusLabels).map(([v, l]) => ({
+            label: l,
+            value: v
+          }))" value-key="value" label-key="label" class="w-40" />
 
-          <USelectMenu
-            v-model="localStock"
-            :items="Object.entries(stockLabels).map(([v, l]) => ({
-              label: l,
-              value: v
-            }))"
-            value-key="value"
-            label-key="label"
-            class="w-40"
-          />
+          <USelectMenu v-model="localStock" :items="Object.entries(stockLabels).map(([v, l]) => ({
+            label: l,
+            value: v
+          }))" value-key="value" label-key="label" class="w-40" />
 
-          <UButton
-            v-if="localSearch || localStatus !== 'all' || localStock !== 'all'"
-            icon="i-lucide-filter-x"
-            color="gray"
-            variant="ghost"
-            label="Reset"
-            @click="handleReset"
-          />
+          <UButton v-if="localSearch || localStatus !== 'all' || localStock !== 'all' || filteredCollection"
+            icon="i-lucide-filter-x" color="gray" variant="ghost" label="Reset" @click="handleReset" />
         </div>
 
         <div class="flex items-center gap-2">
           <!-- Actions de masse -->
-          <Transition
-            enter-active-class="transition duration-200"
-            enter-from-class="opacity-0 translate-y-1"
-            leave-active-class="transition duration-150"
-            leave-to-class="opacity-0 translate-y-1"
-          >
+          <Transition enter-active-class="transition duration-200" enter-from-class="opacity-0 translate-y-1"
+            leave-active-class="transition duration-150" leave-to-class="opacity-0 translate-y-1">
             <div v-if="selectedIds.length > 0" class="flex items-center gap-2">
-              <UButton
-                color="error"
-                variant="soft"
-                icon="i-lucide-trash-2"
-                :label="`Supprimer (${selectedIds.length})`"
-                @click="openDeleteModal(selectedIds)"
-              />
+              <UButton color="error" variant="soft" icon="i-lucide-trash-2" :label="`Supprimer (${selectedIds.length})`"
+                @click="openDeleteModal(selectedIds)" />
             </div>
           </Transition>
 
           <!-- Menu Colonnes -->
-          <UDropdownMenu
-            :items="visibleColumns.map(col => ({
-              label: upperFirst(col.id === 'name' ? 'Nom' : col.id === 'flags' ? 'Attributs' : col.id),
-              type: 'checkbox',
-              checked: col.getIsVisible(),
-              onUpdateChecked: (v: boolean) => col.toggleVisibility(!!v)
-            }))"
-            :content="{ align: 'end' }"
-          >
-            <UButton
-              icon="i-lucide-sliders-horizontal"
-              color="neutral"
-              variant="outline"
-            />
+          <UDropdownMenu :items="visibleColumns.map(col => ({
+            label: upperFirst(col.id === 'name' ? 'Nom' : col.id === 'flags' ? 'Attributs' : col.id),
+            type: 'checkbox',
+            checked: col.getIsVisible(),
+            onUpdateChecked: (v: boolean) => col.toggleVisibility(!!v)
+          }))" :content="{ align: 'end' }">
+            <UButton icon="i-lucide-sliders-horizontal" color="neutral" variant="outline" />
           </UDropdownMenu>
         </div>
       </div>
 
       <!-- Tableau -->
-      <div class="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-900 flex-1 flex flex-col">
+      <div
+        class="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-900 flex-1 flex flex-col">
         <UTable ref="table" v-model:row-selection="rowSelection" :data="[...state.products]" :columns="columns"
           :loading="isLoading" class="flex-1">
           <!-- Loading State -->
@@ -490,19 +465,10 @@ onMounted(() => {
               <p class="text-base font-medium text-gray-900 dark:text-white">
                 Aucun produit trouvé
               </p>
-              <p
-                v-if="localSearch || localStatus !== 'all'"
-                class="text-sm text-gray-500 mt-1"
-              >
+              <p v-if="localSearch || localStatus !== 'all' || filteredCollection" class="text-sm text-gray-500 mt-1">
                 Essayez de modifier vos critères de recherche.
               </p>
-              <UButton
-                v-else
-                label="Créer un produit"
-                color="primary"
-                class="mt-4"
-                to="/admin/products/create"
-              />
+              <UButton v-else label="Créer un produit" color="primary" class="mt-4" to="/products/create" />
             </div>
           </template>
         </UTable>
@@ -511,9 +477,11 @@ onMounted(() => {
       <!-- Pagination -->
       <div class="flex items-center justify-between mt-4 border-t border-gray-200 dark:border-gray-800 pt-4">
         <span class="text-sm text-gray-500">
-          Total : <span class="font-medium text-gray-900 dark:text-white">{{ state.pagination?.total }}</span> produit(s)
+          Total : <span class="font-medium text-gray-900 dark:text-white">{{ state.pagination?.total }}</span>
+          produit(s)
         </span>
-        <UPagination v-model:page="currentPage" :total="state.pagination?.total" :items-per-page="state.pagination?.per_page" />
+        <UPagination v-model:page="currentPage" :total="state.pagination?.total"
+          :items-per-page="state.pagination?.per_page" />
       </div>
     </template>
   </UDashboardPanel>

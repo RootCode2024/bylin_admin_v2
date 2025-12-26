@@ -4,46 +4,23 @@ import type {
   BrandStatistics,
   LaravelPaginator,
   ApiResponse,
-  LoadingState,
-  ValidationError,
+  LoadingState
 } from "~/types/brand";
 
-/**
- * Composable de gestion des marques
- *
- * Fournit toutes les fonctionnalités CRUD et de gestion des marques
- * avec état partagé, pagination, filtres et gestion d'erreurs
- */
 export const useBrands = () => {
   const client = useSanctumClient();
   const toast = useToast();
   const { invalidateStatsCache } = useDashboard();
 
-  // ============================================================================
-  // ÉTAT PARTAGÉ
-  // ============================================================================
 
-  /**
-   * Liste des marques chargées
-   */
   const brands = useState<Brand[]>("brands", () => []);
-
-  /**
-   * État de chargement global
-   */
   const loading = useState<boolean>("brands:loading", () => false);
-
-  /**
-   * État de chargement détaillé
-   */
   const loadingState = useState<LoadingState>(
     "brands:loadingState",
     () => "idle"
   );
 
-  /**
-   * Configuration de la pagination
-   */
+
   const pagination = useState("brands:pagination", () => ({
     pageIndex: 0,
     pageSize: 15,
@@ -51,9 +28,6 @@ export const useBrands = () => {
     totalPages: 0,
   }));
 
-  /**
-   * Filtres actifs
-   */
   const filters = useState<BrandFilters>("brands:filters", () => ({
     search: "",
     is_active: undefined,
@@ -65,36 +39,21 @@ export const useBrands = () => {
     sort_direction: "asc",
   }));
 
-  /**
-   * Marque actuellement sélectionnée
-   */
   const currentBrand = useState<Brand | null>("brands:current", () => null);
 
-  /**
-   * Statistiques des marques
-   */
   const statistics = useState<BrandStatistics | null>(
     "brands:statistics",
     () => null
   );
 
-  /**
-   * Dernière erreur survenue
-   */
   const lastError = useState<string | null>("brands:error", () => null);
 
   // ============================================================================
   // COMPUTED
   // ============================================================================
 
-  /**
-   * Indique si des données sont chargées
-   */
   const hasData = computed(() => brands.value.length > 0);
 
-  /**
-   * Indique si des filtres sont actifs
-   */
   const hasActiveFilters = computed(() => {
     return Boolean(
       filters.value.search ||
@@ -104,9 +63,6 @@ export const useBrands = () => {
     );
   });
 
-  /**
-   * Nombre de pages totales
-   */
   const totalPages = computed(() =>
     Math.ceil(pagination.value.total / pagination.value.pageSize)
   );
@@ -115,16 +71,12 @@ export const useBrands = () => {
   // ACTIONS CRUD
   // ============================================================================
 
-  /**
-   * Récupère la liste des marques avec filtres et pagination
-   */
   async function fetchBrands(): Promise<void> {
     loading.value = true;
     loadingState.value = "loading";
     lastError.value = null;
 
     try {
-      // Construction des paramètres de requête
       const params: Record<string, any> = {
         page: pagination.value.pageIndex + 1,
         per_page: pagination.value.pageSize,
@@ -133,7 +85,6 @@ export const useBrands = () => {
         sort_direction: filters.value.sort_direction,
       };
 
-      // Ajout des filtres optionnels
       if (filters.value.is_active !== undefined) {
         params.is_active = filters.value.is_active ? 1 : 0;
       }
@@ -178,9 +129,6 @@ export const useBrands = () => {
     }
   }
 
-  /**
-   * Récupère une marque par son ID
-   */
   async function fetchBrand(id: string): Promise<Brand | null> {
     loading.value = true;
 
@@ -209,9 +157,6 @@ export const useBrands = () => {
     }
   }
 
-  /**
-   * Crée une nouvelle marque
-   */
   async function createBrand(
     data: FormData | Record<string, any>
   ): Promise<boolean> {
@@ -235,7 +180,6 @@ export const useBrands = () => {
           icon: "i-lucide-check-circle",
         });
 
-        // Invalidation du cache et rechargement
         invalidateStatsCache();
         await fetchBrands();
 
@@ -252,56 +196,38 @@ export const useBrands = () => {
     }
   }
 
-  /**
-   * Met à jour une marque existante
-   */
-  async function updateBrand(
-    id: string,
-    data: FormData | Record<string, any>
-  ): Promise<boolean> {
+  async function updateBrand(id: string, data: FormData): Promise<boolean> {
     loading.value = true;
     lastError.value = null;
 
     try {
-      // Gestion du _method pour Laravel avec FormData
-      if (data instanceof FormData) {
-        data.append("_method", "PUT");
-      }
-
       const response = await client<ApiResponse<Brand>>(
         `/api/v1/admin/brands/${id}`,
         {
-          method: data instanceof FormData ? "POST" : "PUT",
+          method: "POST",
           body: data,
         }
       );
 
-      if (response.success) {
-        toast.add({
-          title: "Marque mise à jour",
-          description:
-            response.message || "La marque a été mise à jour avec succès",
-          color: "success",
-          icon: "i-lucide-check-circle",
-        });
+      if (response.success && response.data) {
+        loading.value = false;
 
-        await fetchBrands();
+        const index = brands.value.findIndex((b) => b.id === id);
+        if (index !== -1) {
+          brands.value[index] = response.data;
+        }
         return true;
       }
 
       return false;
-    } catch (error: any) {
-      lastError.value = error.message;
-      handleValidationErrors(error);
-      return false;
-    } finally {
+    } catch (err: any) {
       loading.value = false;
+      handleValidationErrors(err);
+      console.error("Update brand error:", err);
+      return false;
     }
   }
 
-  /**
-   * Bascule le statut actif/inactif d'une marque
-   */
   async function toggleStatus(id: string): Promise<boolean> {
     const brand = brands.value.find((b) => b.id === id);
     if (!brand) {
@@ -352,9 +278,6 @@ export const useBrands = () => {
     }
   }
 
-  /**
-   * Supprime (soft delete) une ou plusieurs marques
-   */
   async function deleteBrands(ids: string[]): Promise<boolean> {
     if (ids.length === 0) return false;
 
@@ -411,9 +334,6 @@ export const useBrands = () => {
     }
   }
 
-  /**
-   * Restaure une ou plusieurs marques supprimées
-   */
   async function restoreBrands(ids: string[]): Promise<boolean> {
     if (ids.length === 0) return false;
 
@@ -469,9 +389,6 @@ export const useBrands = () => {
     }
   }
 
-  /**
-   * Supprime définitivement une ou plusieurs marques
-   */
   async function forceDeleteBrands(ids: string[]): Promise<boolean> {
     if (ids.length === 0) return false;
 
@@ -529,9 +446,6 @@ export const useBrands = () => {
     }
   }
 
-  /**
-   * Récupère les statistiques des marques
-   */
   async function fetchStatistics(): Promise<BrandStatistics | null> {
     try {
       const response = await client<ApiResponse<BrandStatistics>>(
@@ -555,14 +469,11 @@ export const useBrands = () => {
   // GESTION DES ERREURS
   // ============================================================================
 
-  /**
-   * Gère les erreurs de validation de l'API
-   */
   function handleValidationErrors(error: any): void {
     const errors = error.response?._data?.errors;
 
     if (errors && typeof errors === "object") {
-      // Extraction et formatage des erreurs
+
       const errorMessages = Object.entries(errors)
         .map(([field, messages]) => {
           const messageArray = Array.isArray(messages) ? messages : [messages];
@@ -592,17 +503,11 @@ export const useBrands = () => {
   // HELPERS DE PAGINATION ET FILTRES
   // ============================================================================
 
-  /**
-   * Change la page courante
-   */
   function setPage(pageIndex: number): void {
     pagination.value.pageIndex = pageIndex;
     fetchBrands();
   }
 
-  /**
-   * Change le nombre d'éléments par page
-   */
   function setPageSize(size: number): void {
     pagination.value.pageSize = size;
     pagination.value.pageIndex = 0;
@@ -610,18 +515,12 @@ export const useBrands = () => {
     fetchBrands();
   }
 
-  /**
-   * Définit le terme de recherche
-   */
   function setSearch(search: string): void {
     filters.value.search = search;
     pagination.value.pageIndex = 0;
     fetchBrands();
   }
 
-  /**
-   * Définit le filtre de statut (depuis l'interface utilisateur)
-   */
   function setStatus(status: "all" | "active" | "inactive"): void {
     if (status === "all") {
       filters.value.is_active = undefined;
@@ -634,18 +533,12 @@ export const useBrands = () => {
     fetchBrands();
   }
 
-  /**
-   * Définit le filtre de statut (depuis l'API)
-   */
   function setStatusFilter(status: boolean | undefined): void {
     filters.value.is_active = status;
     pagination.value.pageIndex = 0;
     fetchBrands();
   }
 
-  /**
-   * Définit les filtres de suppression
-   */
   function setTrashedFilter(withTrashed: boolean, onlyTrashed: boolean): void {
     filters.value.with_trashed = withTrashed;
     filters.value.only_trashed = onlyTrashed;
@@ -653,9 +546,6 @@ export const useBrands = () => {
     fetchBrands();
   }
 
-  /**
-   * Définit l'ordre de tri
-   */
   function setSorting(
     sortBy: BrandFilters["sort_by"],
     direction: "asc" | "desc" = "asc"
@@ -665,9 +555,6 @@ export const useBrands = () => {
     fetchBrands();
   }
 
-  /**
-   * Réinitialise tous les filtres
-   */
   function resetFilters(): void {
     filters.value = {
       search: "",
@@ -683,9 +570,6 @@ export const useBrands = () => {
     fetchBrands();
   }
 
-  /**
-   * Réinitialise tout l'état
-   */
   function reset(): void {
     brands.value = [];
     currentBrand.value = null;
