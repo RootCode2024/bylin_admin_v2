@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
-import { generateCode, normalizeCode } from '~/utils/promotion'
-import type { PromotionType } from '~/types/promotion'
 
 const emit = defineEmits<{
   created: []
@@ -99,15 +97,12 @@ const defaultState: Partial<PromotionFormSchema> = {
 // Computed
 const isPercentage = computed(() => state.type === 'percentage')
 
-// Ajuster la validation de value selon le type
 const maxValue = computed(() => isPercentage.value ? 100 : 1000000)
 
-// Générer un code aléatoire
 function generateRandomCode() {
-  state.code = generateCode('PROMO', 8)
+  state.code = generatePromotionCode('PROMO', 8)
 }
 
-// Normaliser le code à chaque saisie
 watch(() => state.code, (newCode) => {
   if (newCode) {
     state.code = normalizeCode(newCode)

@@ -1,90 +1,99 @@
+/* =========================================================================
+ * 🏷️ PROMOTION UTILS — Nuxt 4 / E-commerce
+ * ========================================================================= */
+
 import type {
   Promotion,
   PromotionType,
   PromotionStatus,
 } from "~/types/promotion";
 
-// Import des helpers communs (pas de ré-export)
 import {
   formatPriceXOF,
   generateRandomCode,
-  normalizeCode as normalizeHelper,
-  getDaysRemaining as getDaysRemainingHelper,
+  normalizeCode,
+  getDaysRemaining,
   formatDateTimeFR,
-} from "./helpers";
+} from "~/utils/helpers";
 
 /* =========================================================================
- * 🏷️ TYPES DE PROMOTIONS - Labels, Icônes, Couleurs
+ * ⚡ CONSTANTS (évite recréation mémoire)
+ * ========================================================================= */
+
+const TYPE_LABELS: Record<PromotionType, string> = {
+  percentage: "Pourcentage",
+  fixed_amount: "Montant fixe",
+  buy_x_get_y: "Achetez X obtenez Y",
+};
+
+const TYPE_ICONS: Record<PromotionType, string> = {
+  percentage: "i-lucide-percent",
+  fixed_amount: "i-lucide-coins",
+  buy_x_get_y: "i-lucide-gift",
+};
+
+const TYPE_COLORS: Record<PromotionType, string> = {
+  percentage: "primary",
+  fixed_amount: "success",
+  buy_x_get_y: "secondary",
+};
+
+const STATUS_LABELS: Record<PromotionStatus, string> = {
+  active: "Active",
+  inactive: "Inactive",
+  expired: "Expirée",
+  upcoming: "À venir",
+  exhausted: "Épuisée",
+};
+
+const STATUS_COLORS: Record<PromotionStatus, string> = {
+  active: "success",
+  inactive: "neutral",
+  expired: "error",
+  upcoming: "info",
+  exhausted: "warning",
+};
+
+/* =========================================================================
+ * 🏷️ TYPES — UI FRIENDLY EXPORTS
+ * ========================================================================= */
+
+export const getTypeLabel = (type: PromotionType): string =>
+  TYPE_LABELS[type] ?? type;
+
+export const getTypeIcon = (type: PromotionType): string =>
+  TYPE_ICONS[type] ?? "i-lucide-tag";
+
+export const getTypeColor = (type: PromotionType): string =>
+  TYPE_COLORS[type] ?? "neutral";
+
+/* =========================================================================
+ * 📊 STATUS — LOGIQUE MÉTIER CORRECTE
  * ========================================================================= */
 
 /**
- * Retourne le label d'un type de promotion
- */
-export function getPromotionTypeLabel(type: PromotionType): string {
-  const labels: Record<PromotionType, string> = {
-    percentage: "Pourcentage",
-    fixed_amount: "Montant fixe",
-    buy_x_get_y: "Achetez X obtenez Y",
-  };
-  return labels[type] || type;
-}
-
-/**
- * Retourne l'icône d'un type de promotion
- */
-export function getPromotionTypeIcon(type: PromotionType): string {
-  const icons: Record<PromotionType, string> = {
-    percentage: "i-lucide-percent",
-    fixed_amount: "i-lucide-coins",
-    buy_x_get_y: "i-lucide-gift",
-  };
-  return icons[type] || "i-lucide-tag";
-}
-
-/**
- * Retourne la couleur badge d'un type
- */
-export function getPromotionTypeColor(type: PromotionType): string {
-  const colors: Record<PromotionType, string> = {
-    percentage: "primary",
-    fixed_amount: "success",
-    buy_x_get_y: "secondary",
-  };
-  return colors[type] || "neutral";
-}
-
-/* =========================================================================
- * 📊 STATUT DE PROMOTION - Calcul & Labels
- * ========================================================================= */
-
-/**
- * Détermine le statut d'une promotion
+ * Ordre IMPORTANT :
+ * upcoming → expired → exhausted → active → inactive
  */
 export function getPromotionStatus(promotion: Promotion): PromotionStatus {
-  const now = new Date();
+  const now = Date.now();
 
-  // Vérifie si elle est épuisée
-  if (promotion.usage_limit && promotion.usage_count >= promotion.usage_limit) {
-    return "exhausted";
-  }
-
-  // Vérifie si elle est expirée
-  if (promotion.expires_at) {
-    const expiresAt = new Date(promotion.expires_at);
-    if (expiresAt < now) {
-      return "expired";
-    }
-  }
-
-  // Vérifie si elle est à venir
   if (promotion.starts_at) {
-    const startsAt = new Date(promotion.starts_at);
-    if (startsAt > now) {
+    if (new Date(promotion.starts_at).getTime() > now) {
       return "upcoming";
     }
   }
 
-  // Vérifie si elle est active
+  if (promotion.expires_at) {
+    if (new Date(promotion.expires_at).getTime() < now) {
+      return "expired";
+    }
+  }
+
+  if (promotion.usage_limit && promotion.usage_count >= promotion.usage_limit) {
+    return "exhausted";
+  }
+
   if (promotion.is_active) {
     return "active";
   }
@@ -92,88 +101,28 @@ export function getPromotionStatus(promotion: Promotion): PromotionStatus {
   return "inactive";
 }
 
-/**
- * Retourne le label d'un statut
- */
-export function getPromotionStatusLabel(status: PromotionStatus): string {
-  const labels: Record<PromotionStatus, string> = {
-    active: "Active",
-    inactive: "Inactive",
-    expired: "Expirée",
-    upcoming: "À venir",
-    exhausted: "Épuisée",
-  };
-  return labels[status];
-}
+export const getStatusLabel = (status: PromotionStatus): string =>
+  STATUS_LABELS[status];
 
-/**
- * Retourne la couleur d'un statut
- */
-export function getPromotionStatusColor(status: PromotionStatus): string {
-  const colors: Record<PromotionStatus, string> = {
-    active: "success",
-    inactive: "neutral",
-    expired: "error",
-    upcoming: "info",
-    exhausted: "warning",
-  };
-  return colors[status];
-}
-
-/**
- * Vérifie si une promotion est expirée
- */
-export function isExpired(promotion: Promotion): boolean {
-  if (!promotion.expires_at) return false;
-  return new Date(promotion.expires_at) < new Date();
-}
-
-/**
- * Vérifie si une promotion est à venir
- */
-export function isUpcoming(promotion: Promotion): boolean {
-  if (!promotion.starts_at) return false;
-  return new Date(promotion.starts_at) > new Date();
-}
-
-/**
- * Vérifie si une promotion est actuellement valide
- */
-export function isCurrentlyValid(promotion: Promotion): boolean {
-  const status = getPromotionStatus(promotion);
-  return status === "active";
-}
+export const getStatusColor = (status: PromotionStatus): string =>
+  STATUS_COLORS[status];
 
 /* =========================================================================
- * 💰 CALCULS DE RÉDUCTION
+ * 💰 VALEURS & CALCULS
  * ========================================================================= */
 
-/**
- * Formate une valeur de promotion pour l'affichage
- */
 export function formatPromotionValue(promotion: Promotion): string {
   if (promotion.type === "percentage") {
-    const value = Number.isInteger(promotion.value)
-      ? promotion.value.toString()
-      : promotion.value
-          .toString()
-          .replace(/\.0+$/, "")
-          .replace(/(\.\d*[1-9])0+$/, "$1");
-
-    return `${value}%`;
+    return `${Number(promotion.value)}%`;
   }
 
   if (promotion.type === "fixed_amount") {
-    // Import depuis helpers au lieu de ré-exporter
     return formatPriceXOF(promotion.value);
   }
 
-  return promotion.value.toString();
+  return String(promotion.value);
 }
 
-/**
- * Calcule le montant de la réduction
- */
 export function calculateDiscount(
   promotion: Promotion,
   amount: number
@@ -186,7 +135,6 @@ export function calculateDiscount(
     discount = promotion.value;
   }
 
-  // Appliquer la limite max si définie
   if (
     promotion.max_discount_amount &&
     discount > promotion.max_discount_amount
@@ -194,144 +142,74 @@ export function calculateDiscount(
     discount = promotion.max_discount_amount;
   }
 
-  // La réduction ne peut pas dépasser le montant
-  if (discount > amount) {
-    discount = amount;
-  }
-
-  return Math.round(discount * 100) / 100;
+  return Math.max(0, Math.min(amount, Math.round(discount)));
 }
 
-/**
- * Vérifie si une promotion est applicable à un montant
- */
 export function isApplicableToAmount(
   promotion: Promotion,
   amount: number
 ): boolean {
-  if (!promotion.min_purchase_amount) {
-    return true;
-  }
-  return amount >= promotion.min_purchase_amount;
+  return (
+    !promotion.min_purchase_amount || amount >= promotion.min_purchase_amount
+  );
 }
 
 /* =========================================================================
- * 📈 LIMITES D'UTILISATION
+ * 📈 UTILISATION
  * ========================================================================= */
 
-/**
- * Vérifie si une promotion a atteint sa limite d'utilisation
- */
-export function hasReachedLimit(promotion: Promotion): boolean {
-  if (!promotion.usage_limit) {
-    return false;
-  }
-  return promotion.usage_count >= promotion.usage_limit;
-}
+export const hasReachedLimit = (promotion: Promotion): boolean =>
+  !!promotion.usage_limit && promotion.usage_count >= promotion.usage_limit;
 
-/**
- * Calcule le pourcentage d'utilisation
- */
-export function getUsagePercentage(promotion: Promotion): number {
-  if (!promotion.usage_limit) {
-    return 0;
-  }
-  return Math.min(100, (promotion.usage_count / promotion.usage_limit) * 100);
-}
+export const getUsagePercentage = (promotion: Promotion): number =>
+  promotion.usage_limit
+    ? Math.min(100, (promotion.usage_count / promotion.usage_limit) * 100)
+    : 0;
 
-/**
- * Formate la limite d'utilisation
- */
 export function formatUsageLimit(promotion: Promotion): string {
-  if (!promotion.usage_limit) {
-    return "Illimité";
-  }
-
-  const remaining = promotion.usage_limit - promotion.usage_count;
-  return `${remaining} / ${promotion.usage_limit} restants`;
+  if (!promotion.usage_limit) return "Illimité";
+  return `${promotion.usage_limit - promotion.usage_count} / ${
+    promotion.usage_limit
+  } restants`;
 }
 
 /* =========================================================================
- * 🔧 CODES PROMO - Génération & Validation
+ * 🔑 CODES PROMO
  * ========================================================================= */
 
-/**
- * Génère un code promo aléatoire
- */
-export function generatePromotionCode(
-  prefix: string = "",
-  length: number = 8
-): string {
-  return generateRandomCode(prefix, length);
-}
+export const generatePromotionCode = (prefix = "", length = 8): string =>
+  generateRandomCode(prefix, length);
 
-/**
- * Normalise un code (uppercase, trim, supprime espaces)
- */
-export function normalizePromotionCode(code: string): string {
-  return normalizeHelper(code);
-}
+export const normalizePromotionCode = (code: string): string =>
+  normalizeCode(code);
 
-/**
- * Vérifie si un code promo est valide (3-50 caractères, A-Z et 0-9 uniquement)
- */
-export function isValidPromotionCode(code: string): boolean {
-  const normalized = normalizePromotionCode(code);
-  return /^[A-Z0-9]{3,50}$/.test(normalized);
-}
+export const isValidPromotionCode = (code: string): boolean =>
+  /^[A-Z0-9]{3,50}$/.test(normalizePromotionCode(code));
 
 /* =========================================================================
- * 📅 DATES & FORMATAGE
+ * 📅 DATES
  * ========================================================================= */
 
-/**
- * Formate une date pour l'affichage
- */
-export function formatPromotionDate(dateString: string | null): string {
-  if (!dateString) return "—";
-  return formatDateTimeFR(dateString);
-}
+export const formatPromotionDate = (date: string | null): string =>
+  date ? formatDateTimeFR(date) : "—";
 
-/**
- * Calcule les jours restants jusqu'à une date
- */
-export function getPromotionDaysRemaining(
-  dateString: string | null
-): number | null {
-  return getDaysRemainingHelper(dateString);
-}
+export const getPromotionDaysRemaining = (date: string | null): number | null =>
+  getDaysRemaining(date);
 
 /* =========================================================================
- * 💵 FORMATAGE DES MONTANTS
+ * 📝 RÉSUMÉ UI
  * ========================================================================= */
 
-/**
- * Formate le montant minimum d'achat
- */
-export function formatMinPurchase(amount: number | null): string {
-  if (!amount) return "Aucun minimum";
-  return `Min. ${formatPriceXOF(amount)}`;
-}
-
-/* =========================================================================
- * 📝 RÉSUMÉS & DESCRIPTIONS
- * ========================================================================= */
-
-/**
- * Crée une description de la promotion pour l'affichage
- */
 export function createPromotionSummary(promotion: Promotion): string {
-  let summary = formatPromotionValue(promotion);
+  const parts: string[] = [formatPromotionValue(promotion)];
 
   if (promotion.min_purchase_amount) {
-    summary += ` • ${formatMinPurchase(promotion.min_purchase_amount)}`;
+    parts.push(`Min. ${formatPriceXOF(promotion.min_purchase_amount)}`);
   }
 
   if (promotion.max_discount_amount) {
-    summary += ` • Max ${promotion.max_discount_amount.toLocaleString(
-      "fr-FR"
-    )} FCFA`;
+    parts.push(`Max ${formatPriceXOF(promotion.max_discount_amount)}`);
   }
 
-  return summary;
+  return parts.join(" • ");
 }

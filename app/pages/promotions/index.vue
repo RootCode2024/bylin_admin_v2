@@ -12,7 +12,7 @@ import {
   getStatusColor,
   formatPromotionValue,
   formatUsageLimit,
-  getDaysRemaining
+  getPromotionDaysRemaining
 } from '~/utils/promotion'
 
 definePageMeta({

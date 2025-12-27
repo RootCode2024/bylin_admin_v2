@@ -2,7 +2,6 @@
 import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import type { Promotion } from '~/types/promotion'
-import { normalizeCode } from '~/utils/promotion'
 
 const props = defineProps<{
   promotion: Promotion | null
@@ -77,7 +76,7 @@ watch(() => props.promotion, (promo) => {
 
 watch(() => state.code, (newCode) => {
   if (newCode) {
-    state.code = normalizeCode(newCode)
+    state.code = normalizePromotionCode(newCode)
   }
 })
 

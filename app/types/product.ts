@@ -263,7 +263,7 @@ export interface VariationFormData {
  */
 export interface ProductFormData {
   // Info
-  brand_id?: string;
+  brand_id: string;
   categories: string[]; // IDs
   name: string;
   slug?: string;

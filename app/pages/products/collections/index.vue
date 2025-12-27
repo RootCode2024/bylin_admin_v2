@@ -90,7 +90,7 @@ const columns: TableColumn<Collection>[] = [
     header: 'Collection',
     cell: ({ row }) => {
       const collection = row.original
-      // ✅ CHANGEMENT: Utiliser cover_image_url au lieu de image_url
+      
       const coverImage = collection.cover_image_url
 
       return h('div', {

@@ -34,7 +34,6 @@ const {
   state,
   isLoading,
   fetchProducts,
-  deleteProducts,
   duplicateProduct,
   setSearch,
   setStatusFilter,
@@ -60,9 +59,11 @@ const localStock = ref<'all' | 'in_stock' | 'out_of_stock'>('all')
 // État pour la collection filtrée
 const filteredCollection = ref<Collection | null>(null)
 
-// Modales
-const isDeleteModalOpen = ref(false)
-const idsToDelete = ref<string[]>([])
+// Modale de suppression
+const deleteModal = ref({
+  open: false,
+  ids: [] as string[]
+})
 
 // ========================================
 // Configuration
@@ -82,6 +83,11 @@ const stockLabels = {
   in_stock: 'En stock',
   out_of_stock: 'Épuisé'
 }
+
+// ========================================
+// Computed - Données stables
+// ========================================
+const tableData = computed(() => state.value.products)
 
 // ========================================
 // Colonnes de la table
@@ -272,18 +278,25 @@ function getRowItems(product: Product) {
         label: 'Supprimer',
         icon: 'i-lucide-trash',
         color: 'error',
-        onSelect: () => {
-          idsToDelete.value = [product.id]
-          isDeleteModalOpen.value = true
-        }
+        onSelect: () => openDeleteModal([product.id])
       }
     ]
   ]
 }
 
 function openDeleteModal(ids: string[]) {
-  idsToDelete.value = ids
-  isDeleteModalOpen.value = true
+  deleteModal.value = {
+    open: true,
+    ids
+  }
+}
+
+function handleDeleteSuccess() {
+  // Réinitialiser la sélection
+  rowSelection.value = {}
+
+  // Recharger les produits
+  fetchProducts()
 }
 
 function clearCollectionFilter() {
@@ -343,7 +356,6 @@ watch(
   () => route.query.collection_id,
   async (collectionId) => {
     if (collectionId && typeof collectionId === 'string') {
-
       const collection = await fetchCollection(collectionId)
       if (collection) {
         filteredCollection.value = collection
@@ -357,10 +369,12 @@ watch(
   { immediate: true }
 )
 
-// Chargement initial
-onMounted(() => {
+const paginationTotal = computed(() => state.value.pagination?.total || 0)
+
+// Chargement initial (client-side only)
+onMounted(async () => {
   if (!route.query.collection_id) {
-    fetchProducts()
+    await fetchProducts()
   }
 })
 </script>
@@ -438,7 +452,7 @@ onMounted(() => {
       <!-- Tableau -->
       <div
         class="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-900 flex-1 flex flex-col">
-        <UTable ref="table" v-model:row-selection="rowSelection" :data="[...state.products]" :columns="columns"
+        <UTable ref="table" v-model:row-selection="rowSelection" :data="tableData" :columns="columns"
           :loading="isLoading" class="flex-1">
           <!-- Loading State -->
           <template #loading-state>
@@ -475,7 +489,8 @@ onMounted(() => {
       </div>
 
       <!-- Pagination -->
-      <div class="flex items-center justify-between mt-4 border-t border-gray-200 dark:border-gray-800 pt-4">
+      <div v-if="paginationTotal > 0"
+        class="flex items-center justify-between mt-4 border-t border-gray-200 dark:border-gray-800 pt-4">
         <span class="text-sm text-gray-500">
           Total : <span class="font-medium text-gray-900 dark:text-white">{{ state.pagination?.total }}</span>
           produit(s)
@@ -485,4 +500,9 @@ onMounted(() => {
       </div>
     </template>
   </UDashboardPanel>
+
+  <!-- Modale de suppression (client-only) -->
+  <ClientOnly>
+    <ProductDeleteModal v-model:open="deleteModal.open" :ids="deleteModal.ids" @success="handleDeleteSuccess" />
+  </ClientOnly>
 </template>

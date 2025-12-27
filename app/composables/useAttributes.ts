@@ -484,7 +484,7 @@ export const useAttributes = () => {
 
   return {
     // État (read-only)
-    attributes: readonly(attributes),
+    attributes: attributes,
     currentAttribute: readonly(currentAttribute),
     statistics: readonly(statistics),
     loading: readonly(loading),

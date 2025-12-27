@@ -1,7 +1,6 @@
 <script setup lang="ts">
-// Nuxt UI 4.2+ standard
 const props = defineProps<{
-  open: boolean // v-model:open
+  open: boolean
   ids: string[]
 }>()
 

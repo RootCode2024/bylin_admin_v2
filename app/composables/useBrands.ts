@@ -585,7 +585,7 @@ export const useBrands = () => {
 
   return {
     // État (read-only)
-    brands: readonly(brands),
+    brands: brands,
     currentBrand: readonly(currentBrand),
     statistics: readonly(statistics),
     loading: readonly(loading),

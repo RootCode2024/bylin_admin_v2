@@ -1,7 +1,8 @@
 <script setup lang="ts">
-  import type { z } from 'zod'
+import type { z } from 'zod'
 import type { Customer } from '~/types/customer'
-import { customerFormSchema, parseStoredPhone, formatPhoneNumber, Gender } from '~/utils/validation'
+import { customerFormSchema, Gender } from '~/utils/validation'
+import { parseStoredPhone, formatPhoneNumber } from '~/utils/format'
 import type { FormSubmitEvent } from '@nuxt/ui'
 
 definePageMeta({
@@ -224,16 +225,10 @@ onMounted(loadData)
 
         <template #right>
           <div class="flex items-center gap-2">
-            <UButton v-if="!isEditing && !isInitialLoading"
-              icon="i-lucide-download"
-              variant="outline"
-              color="neutral"
+            <UButton v-if="!isEditing && !isInitialLoading" icon="i-lucide-download" variant="outline" color="neutral"
               @click="handleExport" />
 
-            <UButton v-if="!isEditing && !isInitialLoading"
-              label="Modifier"
-              icon="i-lucide-pencil"
-              color="primary"
+            <UButton v-if="!isEditing && !isInitialLoading" label="Modifier" icon="i-lucide-pencil" color="primary"
               @click="isEditing = true" />
           </div>
         </template>
@@ -275,7 +270,7 @@ onMounted(loadData)
               </div>
               <div class="mt-2">
                 <UBadge :color="statusOptions.find(o => o.value === customer?.status)?.color as any" variant="subtle">
-                  {{ statusOptions.find(o => o.value === customer?.status)?.label }}
+                  {{statusOptions.find(o => o.value === customer?.status)?.label}}
                 </UBadge>
               </div>
             </div>
@@ -342,7 +337,8 @@ onMounted(loadData)
               <div>
                 <label class="text-sm font-medium text-gray-500">Date de naissance</label>
                 <p class="mt-1 text-gray-900 dark:text-white">
-                  {{ safeCustomer.date_of_birth ? new Date(safeCustomer.date_of_birth).toLocaleDateString('fr-FR') : 'Non renseignée' }}
+                  {{ safeCustomer.date_of_birth ? new Date(safeCustomer.date_of_birth).toLocaleDateString('fr-FR') :
+                  'Non renseignée' }}
                   <span v-if="safeCustomer.date_of_birth" class="text-sm text-gray-500 ml-2">
                     ({{ calculateAge(safeCustomer.date_of_birth) }} ans)
                   </span>
@@ -369,7 +365,7 @@ onMounted(loadData)
               <div v-if="customer">
                 <label class="text-sm font-medium text-gray-500">Genre</label>
                 <p class="mt-1 text-gray-900 dark:text-white">
-                  {{ genderOptions.find(g => g.value === safeCustomer.gender)?.label || 'Non renseigné' }}
+                  {{genderOptions.find(g => g.value === safeCustomer.gender)?.label || 'Non renseigné'}}
                 </p>
               </div>
               <div>
@@ -424,13 +420,8 @@ onMounted(loadData)
               </UFormField>
 
               <UFormField label="Genre" name="gender">
-                <USelectMenu
-                  v-model="state.gender"
-                  :items="genderOptions"
-                  value-key="value"
-                  label-key="label"
-                  placeholder="Sélectionner"
-                  class="w-full" />
+                <USelectMenu v-model="state.gender" :items="genderOptions" value-key="value" label-key="label"
+                  placeholder="Sélectionner" class="w-full" />
               </UFormField>
 
               <UFormField label="Statut" name="status" class="md:col-span-2">

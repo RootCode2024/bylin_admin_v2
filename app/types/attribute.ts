@@ -24,9 +24,6 @@ export interface Attribute {
   values_count?: number;
 }
 
-/**
- * Interface représentant une valeur d'attribut (Rouge, XL, etc.)
- */
 export interface AttributeValue {
   id: string;
   attribute_id: string;
@@ -38,13 +35,9 @@ export interface AttributeValue {
   updated_at: string;
   deleted_at?: string | null;
 
-  // Relations optionnelles
   attribute?: Attribute;
 }
 
-/**
- * Types d'attributs disponibles
- */
 export type AttributeType = "text" | "select" | "color" | "size" | "boolean";
 
 /**

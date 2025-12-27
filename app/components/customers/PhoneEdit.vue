@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { phoneSchema, popularCountries, formatPhoneNumber } from '~/utils/validation'
+import { phoneSchema, popularCountries } from '~/utils/validation'
+import { formatPhoneNumber } from '~/utils/format'
 
 const props = defineProps<{
   modelValue: { countryCode: string, number: string } | null
@@ -10,7 +11,7 @@ const emit = defineEmits<{
   'update:modelValue': [value: { countryCode: string, number: string } | null]
 }>()
 
-const selectedCountry = ref(props.modelValue?.countryCode || 'BJ')
+const selectedCountry = ref<'BJ' | 'FR' | 'CI' | 'SN' | 'TG' | 'BF' | 'ML' | 'NE' | 'US' | 'GB' | 'CA'>(props.modelValue?.countryCode as 'BJ' || 'BJ')
 const phoneNumber = ref(props.modelValue?.number || '')
 const isValidating = ref(false)
 const validationStatus = ref<'idle' | 'valid' | 'invalid'>('idle')
@@ -79,7 +80,7 @@ const inputColor = computed(() => {
   <div class="space-y-2">
     <div class="flex gap-2">
       <!-- Sélecteur de pays -->
-      <USelectMenu v-model="selectedCountry" :items="popularCountries" value-key="code" :disabled="disabled"
+      <USelectMenu v-model="selectedCountry" :items="[...popularCountries]" value-key="code" :disabled="disabled"
         class="w-48">
         <template #leading>
           <div class="flex items-center gap-2">
