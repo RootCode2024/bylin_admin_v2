@@ -1,15 +1,41 @@
 <script setup lang="ts">
+import type { ApiErrorResponse } from '~/types/validation'
+
 definePageMeta({
-  layout: 'auth',
-  middleware: 'sanctum:guest' // Redirige vers l'accueil si déjà connecté
+  layout: 'auth'
 })
 
 const toast = useToast()
-const client = useSanctumClient() // Client HTTP configuré automatiquement par le module
+const client = useSanctumClient()
 
 const email = ref('')
 const loading = ref(false)
 const emailSent = ref(false)
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  if (typeof error === 'string') {
+    return error
+  }
+
+  if (error && typeof error === 'object' && 'message' in error) {
+    const errorWithMessage = error as { message?: unknown }
+    if (typeof errorWithMessage.message === 'string') {
+      return errorWithMessage.message
+    }
+  }
+
+  const apiError = error as ApiErrorResponse
+  if (apiError.response?._data?.message) {
+    return apiError.response._data.message
+  }
+
+  // Message par défaut
+  return 'Une erreur est survenue.'
+}
 
 const handleResetLink = async () => {
   if (!email.value) {
@@ -25,8 +51,6 @@ const handleResetLink = async () => {
   loading.value = true
 
   try {
-    // Adapter l'URL selon ta route Laravel (ex: /forgot-password ou /api/v1/auth/forgot-password)
-    // Laravel attend généralement un champ 'email'
     await client('/api/v1/auth/forgot-password', {
       method: 'POST',
       body: { email: email.value }
@@ -41,9 +65,8 @@ const handleResetLink = async () => {
       icon: 'i-lucide-check-circle'
     })
 
-  } catch (error: any) {
-    // Gestion des erreurs (ex: throttled, erreur serveur)
-    const message = error.response?._data?.message || 'Une erreur est survenue.'
+  } catch (error: unknown) {
+    const message = getErrorMessage(error)
 
     toast.add({
       title: 'Erreur',
@@ -63,7 +86,7 @@ const handleResetLink = async () => {
     <!-- Header -->
     <div class="text-center lg:text-left">
       <div class="lg:hidden flex justify-center mb-6">
-        <div class="w-12 h-12 rounded-xl bg-[#0066bf] flex items-center justify-center text-white shadow-lg">
+        <div class="w-12 h-12 rounded-xl bg-primary-500 flex items-center justify-center text-white shadow-lg">
           <UIcon name="i-lucide-key-round" class="w-7 h-7" />
         </div>
       </div>
@@ -89,7 +112,7 @@ const handleResetLink = async () => {
       <UButton
         to="/auth/login"
         variant="outline"
-        color="green"
+        color="success"
         block
         class="mt-2"
       >
@@ -98,7 +121,7 @@ const handleResetLink = async () => {
     </div>
 
     <!-- Formulaire -->
-    <form v-else @submit.prevent="handleResetLink" class="space-y-6">
+    <form v-else class="space-y-6" @submit.prevent="handleResetLink">
       <UFormField label="Adresse Email" name="email">
         <UInput
           v-model="email"
@@ -116,7 +139,7 @@ const handleResetLink = async () => {
         block
         size="lg"
         :loading="loading"
-        class="bg-[#0066bf] hover:bg-[#005299] text-white transition-all duration-200"
+        class="bg-primary-500 hover:bg-primary-600 text-white transition-all duration-200"
       >
         Envoyer le lien de réinitialisation
       </UButton>

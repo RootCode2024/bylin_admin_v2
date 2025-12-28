@@ -154,12 +154,20 @@ function handleModalClose() {
 </script>
 
 <template>
-  <UModal v-model:open="open" title="Nouvelle promotion" description="Créer une nouvelle promotion ou code promo"
-    :ui="{ content: 'min-w-[60%]' }" @close="handleModalClose">
+  <UModal
+v-model:open="open"
+title="Nouvelle promotion"
+description="Créer une nouvelle promotion ou code promo"
+    :ui="{ content: 'min-w-[60%]' }"
+@close="handleModalClose">
     <UButton label="Nouvelle promotion" icon="i-lucide-plus" color="primary" />
 
     <template #body>
-      <UForm :schema="schema" :state="state" class="p-4 space-y-4" @submit="onSubmit">
+      <UForm
+:schema="schema"
+:state="state"
+class="p-4 space-y-4"
+@submit="onSubmit">
         <!-- Informations de base -->
         <div class="grid grid-cols-2 gap-4">
           <UFormField label="Nom de la promotion" name="name" required>
@@ -169,8 +177,13 @@ function handleModalClose() {
           <UFormField label="Code promo" name="code">
             <UInput v-model="state.code" placeholder="SUMMER2025" :disabled="loading">
               <template #trailing>
-                <UButton icon="i-lucide-shuffle" color="neutral" variant="link" size="xs" @click="generateRandomCode"
-                  :padded="false" />
+                <UButton
+icon="i-lucide-shuffle"
+color="neutral"
+variant="link"
+size="xs"
+:padded="false"
+                  @click="generateRandomCode" />
               </template>
             </UInput>
             <template #hint>
@@ -180,24 +193,41 @@ function handleModalClose() {
         </div>
 
         <UFormField label="Description" name="description">
-          <UTextarea v-model="state.description" :rows="2" placeholder="Description de la promotion..."
+          <UTextarea
+v-model="state.description"
+:rows="2"
+placeholder="Description de la promotion..."
             :disabled="loading" />
         </UFormField>
 
         <!-- Type et valeur -->
         <div class="grid grid-cols-2 gap-4">
           <UFormField label="Type de réduction" name="type" required>
-            <USelectMenu v-model="state.type" :items="typeOptions" value-key="value" label-key="label" class="w-full">
+            <USelectMenu
+v-model="state.type"
+:items="typeOptions"
+value-key="value"
+label-key="label"
+class="w-full">
               <template #leading>
-                <UIcon v-if="state.type" :name="typeOptions.find(t => t.value === state.type)?.icon || 'i-lucide-tag'"
+                <UIcon
+v-if="state.type"
+:name="typeOptions.find(t => t.value === state.type)?.icon || 'i-lucide-tag'"
                   class="size-4" />
               </template>
             </USelectMenu>
           </UFormField>
 
-          <UFormField :label="isPercentage ? 'Pourcentage de réduction (%)' : 'Montant de réduction (FCFA)'"
-            name="value" required>
-            <UInput v-model.number="state.value" type="number" :min="0" :max="maxValue" :step="isPercentage ? 1 : 100"
+          <UFormField
+:label="isPercentage ? 'Pourcentage de réduction (%)' : 'Montant de réduction (FCFA)'"
+            name="value"
+required>
+            <UInput
+v-model.number="state.value"
+type="number"
+:min="0"
+:max="maxValue"
+:step="isPercentage ? 1 : 100"
               :disabled="loading" />
           </UFormField>
         </div>
@@ -207,12 +237,22 @@ function handleModalClose() {
           <h4 class="text-sm font-medium mb-3">Conditions d'application</h4>
           <div class="grid grid-cols-2 gap-4">
             <UFormField label="Montant minimum d'achat (FCFA)" name="min_purchase_amount">
-              <UInput v-model.number="state.min_purchase_amount" type="number" min="0" step="100" placeholder="0"
+              <UInput
+v-model.number="state.min_purchase_amount"
+type="number"
+min="0"
+step="100"
+placeholder="0"
                 :disabled="loading" />
             </UFormField>
 
             <UFormField label="Réduction maximale (FCFA)" name="max_discount_amount">
-              <UInput v-model.number="state.max_discount_amount" type="number" min="0" step="100" placeholder="Illimité"
+              <UInput
+v-model.number="state.max_discount_amount"
+type="number"
+min="0"
+step="100"
+placeholder="Illimité"
                 :disabled="loading" />
             </UFormField>
           </div>
@@ -223,12 +263,20 @@ function handleModalClose() {
           <h4 class="text-sm font-medium mb-3">Limites d'utilisation</h4>
           <div class="grid grid-cols-2 gap-4">
             <UFormField label="Utilisation totale maximale" name="usage_limit">
-              <UInput v-model.number="state.usage_limit" type="number" min="1" placeholder="Illimité"
+              <UInput
+v-model.number="state.usage_limit"
+type="number"
+min="1"
+placeholder="Illimité"
                 :disabled="loading" />
             </UFormField>
 
             <UFormField label="Utilisation par client" name="usage_limit_per_customer">
-              <UInput v-model.number="state.usage_limit_per_customer" type="number" min="1" :disabled="loading" />
+              <UInput
+v-model.number="state.usage_limit_per_customer"
+type="number"
+min="1"
+:disabled="loading" />
             </UFormField>
           </div>
         </div>
@@ -256,8 +304,17 @@ function handleModalClose() {
 
         <!-- Actions -->
         <div class="flex justify-end gap-3 pt-4 border-t">
-          <UButton label="Annuler" color="neutral" variant="ghost" @click="open = false" />
-          <UButton label="Créer la promotion" color="primary" type="submit" :loading="loading" icon="i-lucide-check" />
+          <UButton
+label="Annuler"
+color="neutral"
+variant="ghost"
+@click="open = false" />
+          <UButton
+label="Créer la promotion"
+color="primary"
+type="submit"
+:loading="loading"
+icon="i-lucide-check" />
         </div>
       </UForm>
     </template>

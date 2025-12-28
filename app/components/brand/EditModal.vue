@@ -228,38 +228,71 @@
 </script>
 
 <template>
-  <UModal v-model:open="isOpen" title="Modifier la marque" description="Mettre à jour les informations de la marque"
-    :ui="{ body: 'min-w-xl' }" @close="handleModalClose">
+  <UModal
+v-model:open="isOpen"
+title="Modifier la marque"
+description="Mettre à jour les informations de la marque"
+    :ui="{ body: 'min-w-xl' }"
+@close="handleModalClose">
     <template #content>
-      <UForm :schema="schema" :state="state" class="p-4 space-y-4" @submit="onSubmit">
+      <UForm
+:schema="schema"
+:state="state"
+class="p-4 space-y-4"
+@submit="onSubmit">
         <!-- Nom de la marque -->
-        <UFormField label="Nom de la marque" name="name" required description="Nom officiel de la marque">
-          <UInput v-model="state.name" placeholder="Nike, Adidas, Apple..." class="w-full" maxlength="100"
+        <UFormField
+label="Nom de la marque"
+name="name"
+required
+description="Nom officiel de la marque">
+          <UInput
+v-model="state.name"
+placeholder="Nike, Adidas, Apple..."
+class="w-full"
+maxlength="100"
             :disabled="loading" />
         </UFormField>
 
         <!-- Description -->
         <UFormField label="Description" name="description" description="Description détaillée de la marque (optionnel)">
-          <UTextarea v-model="state.description" placeholder="Description de la marque..." :rows="4" class="w-full"
-            maxlength="2000" :disabled="loading" />
+          <UTextarea
+v-model="state.description"
+placeholder="Description de la marque..."
+:rows="4"
+class="w-full"
+            maxlength="2000"
+:disabled="loading" />
         </UFormField>
 
         <!-- Upload du logo -->
-        <UFormField label="Logo" name="logo"
+        <UFormField
+label="Logo"
+name="logo"
           :description="`Formats acceptés : ${DEFAULT_IMAGE_CONFIG.acceptedTypes.map(t => t.split('/')[1]?.toUpperCase() || '').join(', ')}. Taille max : ${formatFileSize(DEFAULT_IMAGE_CONFIG.maxFileSize)}.`">
-          <UFileUpload v-slot="{ open: openFileDialog, removeFile }" v-model="state.logo"
+          <UFileUpload
+v-slot="{ open: openFileDialog, removeFile }"
+v-model="state.logo"
             :accept="DEFAULT_IMAGE_CONFIG.acceptedTypes.join(',')">
             <div class="flex flex-wrap items-center gap-3">
 
               <!-- Aperçu du logo -->
-              <UAvatar size="lg" :src="state.logo
+              <UAvatar
+size="lg"
+:src="state.logo
                 ? createPreviewUrl(state.logo)
-                : existingLogoUrl ?? undefined" icon="i-lucide-image" alt="Aperçu du logo" />
+                : existingLogoUrl ?? undefined"
+icon="i-lucide-image"
+alt="Aperçu du logo" />
 
               <!-- Bouton de téléchargement -->
-              <UButton :label="state.logo || existingLogoUrl ? 'Modifier le logo' : 'Télécharger un logo'"
-                color="neutral" variant="outline" icon="i-lucide-upload" @click="openFileDialog()"
-                :disabled="loading" />
+              <UButton
+:label="state.logo || existingLogoUrl ? 'Modifier le logo' : 'Télécharger un logo'"
+                color="neutral"
+variant="outline"
+icon="i-lucide-upload"
+:disabled="loading"
+                @click="openFileDialog()" />
             </div>
 
             <!-- Informations et suppression -->
@@ -267,20 +300,33 @@
               <p v-if="state.logo" class="text-xs text-muted">
                 {{ state.logo.name }} ({{ formatFileSize(state.logo.size) }})
               </p>
-              <UButton label="Supprimer le logo" color="error" variant="link" size="xs" class="p-0"
-                @click="() => { removeFile(); removeLogo() }" :disabled="loading" />
+              <UButton
+label="Supprimer le logo"
+color="error"
+variant="link"
+size="xs"
+class="p-0"
+                :disabled="loading"
+@click="() => { removeFile(); removeLogo() }" />
             </div>
           </UFileUpload>
         </UFormField>
 
         <!-- Site web -->
-        <UFormField label="Site web" name="websiteDomain"
+        <UFormField
+label="Site web"
+name="websiteDomain"
           description="Nom de domaine">
           <UFieldGroup>
-            <UInput v-model="state.websiteDomain" placeholder="exemple" :ui="{
+            <UInput
+v-model="state.websiteDomain"
+placeholder="exemple"
+:ui="{
               base: 'pl-16',
               leading: 'pointer-events-none'
-            }" maxlength="150" :disabled="loading">
+            }"
+maxlength="150"
+:disabled="loading">
               <template #leading>
                 <p class="text-sm text-muted">
                   https://
@@ -298,9 +344,17 @@
         </UFormField>
 
         <!-- Ordre de tri -->
-        <UFormField label="Ordre de tri" name="sort_order"
+        <UFormField
+label="Ordre de tri"
+name="sort_order"
           description="Détermine la position d'affichage (0 = première position)">
-          <UInput v-model.number="state.sort_order" type="number" min="0" max="9999" step="1" :disabled="loading" />
+          <UInput
+v-model.number="state.sort_order"
+type="number"
+min="0"
+max="9999"
+step="1"
+:disabled="loading" />
         </UFormField>
 
         <!-- Statut actif -->
@@ -315,8 +369,18 @@
 
         <!-- Actions -->
         <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
-          <UButton label="Annuler" color="neutral" variant="ghost" @click="isOpen = false" :disabled="loading" />
-          <UButton label="Enregistrer" color="primary" type="submit" :loading="loading" icon="i-lucide-check" />
+          <UButton
+label="Annuler"
+color="neutral"
+variant="ghost"
+:disabled="loading"
+@click="isOpen = false" />
+          <UButton
+label="Enregistrer"
+color="primary"
+type="submit"
+:loading="loading"
+icon="i-lucide-check" />
         </div>
       </UForm>
     </template>

@@ -163,7 +163,9 @@ watch(isOpen, (value) => {
 </script>
 
 <template>
-  <UModal v-model:open="isOpen" :title="hasTrashed ? 'Restaurer le produit' : 'Supprimer le produit'"
+  <UModal
+v-model:open="isOpen"
+:title="hasTrashed ? 'Restaurer le produit' : 'Supprimer le produit'"
     :description="modalDescription">
     <template #content>
       <div class="p-6 space-y-4">
@@ -196,14 +198,22 @@ watch(isOpen, (value) => {
         </div>
 
         <!-- Liste des produits sélectionnés -->
-        <div v-if="selectedProducts.length > 0 && selectedProducts.length <= 5"
+        <div
+v-if="selectedProducts.length > 0 && selectedProducts.length <= 5"
           class="border border-gray-200 dark:border-gray-800 rounded-lg divide-y divide-gray-200 dark:divide-gray-800">
           <div v-for="product in selectedProducts" :key="product.id" class="p-3 flex items-center justify-between">
             <div class="flex items-center gap-2 flex-1 min-w-0">
-              <UAvatar v-if="product.thumbnail_url || product.media?.[0]?.original_url"
-                :src="product.thumbnail_url || product.media?.[0]?.original_url" :alt="product.name" size="sm"
+              <UAvatar
+v-if="product.thumbnail_url || product.media?.[0]?.original_url"
+                :src="product.thumbnail_url || product.media?.[0]?.original_url"
+:alt="product.name"
+size="sm"
                 class="shrink-0" />
-              <UAvatar v-else icon="i-lucide-package" size="sm" class="shrink-0 bg-gray-100 dark:bg-gray-800" />
+              <UAvatar
+v-else
+icon="i-lucide-package"
+size="sm"
+class="shrink-0 bg-gray-100 dark:bg-gray-800" />
               <div class="min-w-0 flex-1">
                 <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
                   {{ product.name }}
@@ -214,14 +224,25 @@ watch(isOpen, (value) => {
               </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-              <UBadge v-if="product.is_variable && product.variations && product.variations.length > 0" variant="subtle"
-                color="secondary" size="xs">
+              <UBadge
+v-if="product.is_variable && product.variations && product.variations.length > 0"
+variant="subtle"
+                color="secondary"
+size="xs">
                 {{ product.variations.length }} variation{{ product.variations.length > 1 ? 's' : '' }}
               </UBadge>
-              <UBadge v-if="product.is_preorder_enabled" variant="subtle" color="secondary" size="xs">
+              <UBadge
+v-if="product.is_preorder_enabled"
+variant="subtle"
+color="secondary"
+size="xs">
                 Précommande
               </UBadge>
-              <UBadge v-if="product.stock_quantity <= 0" variant="subtle" color="error" size="xs">
+              <UBadge
+v-if="product.stock_quantity <= 0"
+variant="subtle"
+color="error"
+size="xs">
                 Épuisé
               </UBadge>
             </div>
@@ -236,7 +257,11 @@ watch(isOpen, (value) => {
         </div>
 
         <!-- Avertissement -->
-        <UAlert v-if="warningMessage && !hasTrashed" color="warning" variant="subtle" icon="i-lucide-alert-triangle"
+        <UAlert
+v-if="warningMessage && !hasTrashed"
+color="warning"
+variant="subtle"
+icon="i-lucide-alert-triangle"
           :title="warningMessage" />
 
         <!-- Option de suppression définitive pour les produits supprimés -->
@@ -256,9 +281,18 @@ watch(isOpen, (value) => {
 
         <!-- Actions -->
         <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
-          <UButton label="Annuler" color="neutral" variant="ghost" @click="isOpen = false" :disabled="isLoading" />
-          <UButton :label="buttonLabel" :color="buttonColor" @click="handleDelete" :loading="isLoading"
-            :icon="actionType === 'force' ? 'i-lucide-trash-2' : actionType === 'restore' ? 'i-lucide-refresh-cw' : 'i-lucide-trash'" />
+          <UButton
+label="Annuler"
+color="neutral"
+variant="ghost"
+:disabled="isLoading"
+@click="isOpen = false" />
+          <UButton
+:label="buttonLabel"
+:color="buttonColor"
+:loading="isLoading"
+:icon="actionType === 'force' ? 'i-lucide-trash-2' : actionType === 'restore' ? 'i-lucide-refresh-cw' : 'i-lucide-trash'"
+            @click="handleDelete" />
         </div>
       </div>
     </template>

@@ -56,8 +56,8 @@ async function handleDelete() {
             label="Annuler"
             color="neutral"
             variant="ghost"
-            @click="open = false"
             :disabled="loading"
+            @click="open = false"
           />
           <UButton
             :label="count === 1 ? 'Supprimer' : `Supprimer (${count})`"

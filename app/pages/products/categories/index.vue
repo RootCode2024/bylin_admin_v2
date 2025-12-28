@@ -398,7 +398,7 @@ onMounted(() => {
             class="w-full sm:w-72"
             :ui="{ trailing: 'pointer-events-auto' }"
           >
-            <template #trailing v-if="localSearch">
+            <template v-if="localSearch" #trailing>
               <UButton
                 color="neutral"
                 variant="link"
@@ -502,7 +502,7 @@ onMounted(() => {
                 <UIcon name="i-lucide-folder" class="w-8 h-8 text-gray-400" />
               </div>
               <p class="text-base font-medium text-gray-900 dark:text-white">Aucune catégorie trouvée</p>
-              <p class="text-sm text-gray-500 mt-1" v-if="localSearch || localStatus !== 'all' || localLevel !== 'all'">
+              <p v-if="localSearch || localStatus !== 'all' || localLevel !== 'all'" class="text-sm text-gray-500 mt-1">
                 Essayez de modifier vos filtres.
               </p>
               <UButton

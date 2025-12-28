@@ -109,9 +109,12 @@ function handleCancel() {
         </div>
 
         <!-- Liste des collections sélectionnées -->
-        <div v-if="selectedCollections.length > 0 && selectedCollections.length <= 5"
+        <div
+v-if="selectedCollections.length > 0 && selectedCollections.length <= 5"
           class="border border-gray-200 dark:border-gray-800 rounded-lg divide-y divide-gray-200 dark:divide-gray-800">
-          <div v-for="collection in selectedCollections" :key="collection.id"
+          <div
+v-for="collection in selectedCollections"
+:key="collection.id"
             class="p-3 flex items-center justify-between">
             <div class="flex items-center gap-3 flex-1 min-w-0">
               <div class="min-w-0 flex-1">
@@ -124,10 +127,18 @@ function handleCancel() {
               </div>
             </div>
             <div class="flex items-center gap-2 shrink-0 ml-3">
-              <UBadge v-if="collection.products_count > 0" variant="subtle" color="primary" size="xs">
+              <UBadge
+v-if="collection.products_count > 0"
+variant="subtle"
+color="primary"
+size="xs">
                 {{ collection.products_count }} produit{{ collection.products_count > 1 ? 's' : '' }}
               </UBadge>
-              <UBadge v-if="!collection.is_active" variant="subtle" color="neutral" size="xs">
+              <UBadge
+v-if="!collection.is_active"
+variant="subtle"
+color="neutral"
+size="xs">
                 Inactive
               </UBadge>
             </div>
@@ -135,7 +146,8 @@ function handleCancel() {
         </div>
 
         <!-- Message si plus de 5 collections -->
-        <div v-else-if="selectedCollections.length > 5"
+        <div
+v-else-if="selectedCollections.length > 5"
           class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-center">
           <p class="text-sm text-gray-600 dark:text-gray-400">
             {{ selectedCollections.length }} collections sélectionnées
@@ -143,7 +155,11 @@ function handleCancel() {
         </div>
 
         <!-- Avertissement produits -->
-        <UAlert v-if="warningMessage" color="warning" variant="subtle" icon="i-lucide-alert-triangle">
+        <UAlert
+v-if="warningMessage"
+color="warning"
+variant="subtle"
+icon="i-lucide-alert-triangle">
           <template #title>
             <span class="text-sm">{{ warningMessage }}</span>
           </template>
@@ -165,9 +181,18 @@ function handleCancel() {
 
         <!-- Actions -->
         <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
-          <UButton label="Annuler" color="neutral" variant="ghost" @click="handleCancel" :disabled="isDeleting" />
-          <UButton :label="buttonLabel" color="error" icon="i-lucide-trash-2" @click="handleDelete"
-            :loading="isDeleting" />
+          <UButton
+label="Annuler"
+color="neutral"
+variant="ghost"
+:disabled="isDeleting"
+@click="handleCancel" />
+          <UButton
+:label="buttonLabel"
+color="error"
+icon="i-lucide-trash-2"
+:loading="isDeleting"
+            @click="handleDelete" />
         </div>
       </div>
     </template>

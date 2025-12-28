@@ -15,7 +15,7 @@ defineProps<{
         src="~/assets/logo-blue.png"
         alt="Logo"
         class="h-8 w-auto object-contain"
-      />
+      >
 
     </NuxtLink>
   </div>

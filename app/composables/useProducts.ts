@@ -8,6 +8,7 @@ import type {
   ProductFormData,
   ProductStatus,
 } from "~/types/product";
+import type { ValidationErrors, ApiErrorResponse } from "~/types/validation";
 
 export const useProduct = () => {
   const client = useSanctumClient();
@@ -74,6 +75,36 @@ export const useProduct = () => {
   });
 
   // ============================================================================
+  // UTILITAIRES D'ERREUR
+  // ============================================================================
+
+  /**
+   * Obtient le message d'erreur d'une exception
+   */
+  function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return "Une erreur inconnue est survenue";
+  }
+
+  /**
+   * Obtient le message d'erreur de l'API
+   */
+  function getApiErrorMessage(error: unknown): string {
+    const apiError = error as ApiErrorResponse;
+    return apiError.response?._data?.message || getErrorMessage(error);
+  }
+
+  /**
+   * Obtient les erreurs de validation de l'API
+   */
+  function getValidationErrors(error: unknown): ValidationErrors | null {
+    const apiError = error as ApiErrorResponse;
+    return apiError.response?._data?.errors || null;
+  }
+
+  // ============================================================================
   // ACTIONS CRUD
   // ============================================================================
 
@@ -82,7 +113,7 @@ export const useProduct = () => {
     state.value.error = null;
 
     try {
-      const params: Record<string, any> = {
+      const params: Record<string, string | number | boolean | undefined> = {
         page: state.value.filters.page,
         per_page: state.value.filters.per_page,
         search: state.value.filters.search || undefined,
@@ -91,13 +122,20 @@ export const useProduct = () => {
       };
 
       if (state.value.filters.with_trashed) params.with_trashed = 1;
-      if (state.value.filters.status) params.status = state.value.filters.status;
-      if (state.value.filters.brand_id) params.brand_id = state.value.filters.brand_id;
-      if (state.value.filters.category_id) params.category_id = state.value.filters.category_id;
-      if (state.value.filters.collection_id) params.collection_id = state.value.filters.collection_id;
-      if (state.value.filters.in_stock !== undefined) params.in_stock = state.value.filters.in_stock ? 1 : 0;
-      if (state.value.filters.is_preorder !== undefined) params.is_preorder = state.value.filters.is_preorder ? 1 : 0;
-      if (state.value.filters.is_featured !== undefined) params.is_featured = state.value.filters.is_featured ? 1 : 0;
+      if (state.value.filters.status)
+        params.status = state.value.filters.status;
+      if (state.value.filters.brand_id)
+        params.brand_id = state.value.filters.brand_id;
+      if (state.value.filters.category_id)
+        params.category_id = state.value.filters.category_id;
+      if (state.value.filters.collection_id)
+        params.collection_id = state.value.filters.collection_id;
+      if (state.value.filters.in_stock !== undefined)
+        params.in_stock = state.value.filters.in_stock ? 1 : 0;
+      if (state.value.filters.is_preorder !== undefined)
+        params.is_preorder = state.value.filters.is_preorder ? 1 : 0;
+      if (state.value.filters.is_featured !== undefined)
+        params.is_featured = state.value.filters.is_featured ? 1 : 0;
 
       const response = await client<ApiResponse<LaravelPaginator<Product>>>(
         "/api/v1/admin/products",
@@ -111,9 +149,9 @@ export const useProduct = () => {
       } else {
         throw new Error(response.message || "Erreur de chargement");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       state.value.loadingState = "error";
-      state.value.error = error.message;
+      state.value.error = getErrorMessage(error);
       state.value.products = [];
       handleError(error, "Impossible de charger les produits");
     }
@@ -135,9 +173,9 @@ export const useProduct = () => {
         return response.data;
       }
       return null;
-    } catch (error: any) {
+    } catch (error: unknown) {
       state.value.loadingState = "error";
-      state.value.error = error.message;
+      state.value.error = getErrorMessage(error);
       handleError(error, "Impossible de charger le produit");
       return null;
     }
@@ -161,9 +199,9 @@ export const useProduct = () => {
         return response.data;
       }
       return null;
-    } catch (error: any) {
+    } catch (error: unknown) {
       state.value.loadingState = "error";
-      state.value.error = error.message;
+      state.value.error = getErrorMessage(error);
       handleValidationErrors(error);
       throw error;
     }
@@ -197,9 +235,9 @@ export const useProduct = () => {
         return response.data;
       }
       return null;
-    } catch (error: any) {
+    } catch (error: unknown) {
       state.value.loadingState = "error";
-      state.value.error = error.message;
+      state.value.error = getErrorMessage(error);
       handleValidationErrors(error);
       return null;
     }
@@ -232,9 +270,9 @@ export const useProduct = () => {
         return true;
       }
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       state.value.loadingState = "error";
-      state.value.error = error.message;
+      state.value.error = getErrorMessage(error);
       handleError(error, "Erreur lors de la suppression");
       return false;
     }
@@ -255,7 +293,7 @@ export const useProduct = () => {
         return response.data;
       }
       return null;
-    } catch (error: any) {
+    } catch (error: unknown) {
       state.value.loadingState = "error";
       handleError(error, "Erreur lors de la duplication");
       return null;
@@ -293,16 +331,23 @@ export const useProduct = () => {
         return true;
       }
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Erreur mise à jour stock");
       return false;
     }
   }
 
+  // Type pour les options de précommande
+  interface PreorderOptions {
+    available_date?: string;
+    limit?: number;
+    message?: string;
+  }
+
   async function togglePreorder(
     id: string,
     enable: boolean,
-    options?: { available_date?: string; limit?: number; message?: string }
+    options?: PreorderOptions
   ): Promise<boolean> {
     try {
       const endpoint = enable ? "enable-preorder" : "disable-preorder";
@@ -319,7 +364,7 @@ export const useProduct = () => {
         return true;
       }
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Erreur gestion précommande");
       return false;
     }
@@ -335,8 +380,8 @@ export const useProduct = () => {
       if (response.success) {
         state.value.statistics = response.data;
       }
-    } catch (error) {
-      console.error("Erreur stats produits", error);
+    } catch (_error: unknown) {
+      console.error("Erreur stats produits", _error);
     }
   }
 
@@ -423,12 +468,12 @@ export const useProduct = () => {
     };
   }
 
-  function handleValidationErrors(error: any): void {
-    const errors = error.response?._data?.errors;
+  function handleValidationErrors(error: unknown): void {
+    const errors = getValidationErrors(error);
 
     if (errors && typeof errors === "object") {
       const errorMessages = Object.entries(errors)
-        .map(([_, messages]) =>
+        .map(([_field, messages]) =>
           Array.isArray(messages) ? messages[0] : messages
         )
         .join("\n");
@@ -445,17 +490,19 @@ export const useProduct = () => {
     }
   }
 
-  function handleError(error: any, defaultMessage: string): void {
+  function handleError(error: unknown, defaultMessage: string): void {
+    const errorMessage = getApiErrorMessage(error);
+
     toast.add({
       title: "Erreur",
-      description: error.response?._data?.message || defaultMessage,
+      description: errorMessage || defaultMessage,
       color: "error",
       icon: "i-lucide-alert-triangle",
     });
   }
 
   function objectToFormData(
-    obj: any,
+    obj: object,
     form?: FormData,
     namespace?: string
   ): FormData {
@@ -464,41 +511,39 @@ export const useProduct = () => {
     for (const property in obj) {
       if (
         !Object.prototype.hasOwnProperty.call(obj, property) ||
-        obj[property] === undefined ||
-        obj[property] === null
+        (obj as Record<string, unknown>)[property] === undefined ||
+        (obj as Record<string, unknown>)[property] === null
       ) {
         continue;
       }
 
       const formKey = namespace ? `${namespace}[${property}]` : property;
+      const value = (obj as Record<string, unknown>)[property];
 
-      if (obj[property] instanceof Date) {
-        fd.append(formKey, obj[property].toISOString());
-      } else if (
-        obj[property] instanceof File ||
-        obj[property] instanceof Blob
-      ) {
-        fd.append(formKey, obj[property]);
-      } else if (Array.isArray(obj[property])) {
-        if (obj[property].length === 0) {
+      if (value instanceof Date) {
+        fd.append(formKey, value.toISOString());
+      } else if (value instanceof File || value instanceof Blob) {
+        fd.append(formKey, value);
+      } else if (Array.isArray(value)) {
+        if (value.length === 0) {
           continue;
         }
 
-        obj[property].forEach((item: any, index: number) => {
+        value.forEach((item: unknown, index: number) => {
           if (item instanceof File) {
             fd.append(`${formKey}[]`, item);
           } else if (typeof item === "object" && item !== null) {
             objectToFormData(item, fd, `${formKey}[${index}]`);
-          } else {
+          } else if (item !== undefined && item !== null) {
             fd.append(`${formKey}[]`, String(item));
           }
         });
-      } else if (typeof obj[property] === "object" && obj[property] !== null) {
-        objectToFormData(obj[property], fd, formKey);
-      } else if (typeof obj[property] === "boolean") {
-        fd.append(formKey, obj[property] ? "1" : "0");
+      } else if (typeof value === "object" && value !== null) {
+        objectToFormData(value, fd, formKey);
+      } else if (typeof value === "boolean") {
+        fd.append(formKey, value ? "1" : "0");
       } else {
-        fd.append(formKey, String(obj[property]));
+        fd.append(formKey, String(value));
       }
     }
     return fd;

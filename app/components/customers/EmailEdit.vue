@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { z } from 'zod'
 import { emailSchema } from '~/utils/validation'
 
 const props = defineProps<{
@@ -28,9 +29,18 @@ const debouncedValidation = useDebounceFn(async () => {
     verificationStatus.value = 'valid'
     errorMessage.value = ''
     emit('update:modelValue', localEmail.value)
-  } catch (error: any) {
+  } catch (error: unknown) {
     verificationStatus.value = 'invalid'
-    errorMessage.value = error.errors?.[0]?.message || 'Email invalide'
+
+    if (error instanceof z.ZodError) {
+      errorMessage.value = error.issues[0]?.message || 'Email invalide'
+    } else if (error instanceof Error) {
+      errorMessage.value = error.message
+    } else if (typeof error === 'string') {
+      errorMessage.value = error
+    } else {
+      errorMessage.value = 'Email invalide'
+    }
   } finally {
     isVerifying.value = false
   }
@@ -50,8 +60,15 @@ const inputColor = computed(() => {
 
 <template>
   <div class="space-y-2">
-    <UInput v-model="localEmail" type="email" icon="i-lucide-mail" :disabled="disabled" :color="inputColor"
-      :loading="isVerifying" placeholder="exemple@email.com" class="w-full">
+    <UInput
+v-model="localEmail"
+type="email"
+icon="i-lucide-mail"
+:disabled="disabled"
+:color="inputColor"
+      :loading="isVerifying"
+placeholder="exemple@email.com"
+class="w-full">
       <template #trailing>
         <UIcon v-if="verificationStatus === 'valid'" name="i-lucide-check-circle" class="text-green-500" />
         <UIcon v-else-if="verificationStatus === 'invalid'" name="i-lucide-alert-circle" class="text-red-500" />

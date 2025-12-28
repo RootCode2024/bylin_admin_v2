@@ -7,18 +7,23 @@ const productFormStore = useProductFormStore()
 <template>
   <div class="space-y-6 p-6">
     <UFormField label="Titre SEO">
-      <UInput :model-value="productFormStore.formData.meta_title"
-        @update:model-value="productFormStore.setFormData({ meta_title: $event })"
-        placeholder="Titre pour les moteurs de recherche" class="w-full" />
+      <UInput
+:model-value="productFormStore.formData.meta_title"
+        placeholder="Titre pour les moteurs de recherche"
+        class="w-full"
+@update:model-value="productFormStore.setFormData({ meta_title: $event })" />
       <template #hint>
         <span class="text-xs">{{ productFormStore.formData.meta_title?.length || 0 }}/60 caractères recommandés</span>
       </template>
     </UFormField>
 
     <UFormField label="Description SEO">
-      <UTextarea :model-value="productFormStore.formData.meta_description"
-        @update:model-value="productFormStore.setFormData({ meta_description: $event })" :rows="6"
-        placeholder="Description pour les moteurs de recherche" class="w-full" />
+      <UTextarea
+:model-value="productFormStore.formData.meta_description"
+        :rows="6"
+placeholder="Description pour les moteurs de recherche"
+        class="w-full"
+@update:model-value="productFormStore.setFormData({ meta_description: $event })" />
       <template #hint>
         <span class="text-xs">{{ productFormStore.formData.meta_description?.length || 0 }}/160 caractères
           recommandés</span>

@@ -91,8 +91,17 @@ function handleCancel() {
 
         <!-- Actions -->
         <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
-          <UButton :label="cancelLabel" color="neutral" variant="ghost" @click="handleCancel" :disabled="loading" />
-          <UButton :label="confirmLabel" :color="config.color" @click="handleConfirm" :loading="loading" />
+          <UButton
+:label="cancelLabel"
+color="neutral"
+variant="ghost"
+:disabled="loading"
+@click="handleCancel" />
+          <UButton
+:label="confirmLabel"
+:color="config.color"
+:loading="loading"
+@click="handleConfirm" />
         </div>
       </div>
     </template>

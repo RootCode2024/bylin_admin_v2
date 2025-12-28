@@ -64,13 +64,22 @@ const columns: TableColumn<any>[] = [
     <template #header>
       <UDashboardNavbar title="Commandes">
         <template #right>
-           <UButton label="Exporter" icon="i-lucide-download" variant="ghost" color="neutral" />
+           <UButton
+label="Exporter"
+icon="i-lucide-download"
+variant="ghost"
+color="neutral" />
            <UButton label="Créer commande" icon="i-lucide-plus" />
         </template>
       </UDashboardNavbar>
     </template>
     <template #body>
-      <UTable ref="table" :data="data" :columns="columns" v-model:pagination="pagination" :pagination-options="{ getPaginationRowModel: getPaginationRowModel() }" />
+      <UTable
+ref="table"
+v-model:pagination="pagination"
+:data="data"
+:columns="columns"
+:pagination-options="{ getPaginationRowModel: getPaginationRowModel() }" />
     </template>
   </UDashboardPanel>
 </template>

@@ -2,10 +2,25 @@
 import { computed, watch } from 'vue'
 import type { VariationFormData } from '~/types/product'
 import type { Category } from '~/types/category'
+import type { SelectMenuItem } from '@nuxt/ui'
 import { useProductFormStore } from '~/stores/productForm'
 
+// Définir les types pour les attributs
+interface Attribute {
+  id: string
+  name: string
+  type?: string
+  values?: AttributeValue[]
+}
+
+interface AttributeValue {
+  id: string
+  label: string
+  color_code?: string
+}
+
 const props = defineProps<{
-  attributes: any[]
+  attributes: Attribute[]
   categories: readonly Category[]
   mode: 'create' | 'edit'
 }>()
@@ -32,6 +47,17 @@ const activeAttributeIds = computed({
   set: (value) => productFormStore.setActiveAttributeIds(value)
 })
 
+// Transforme les attributs en items pour USelectMenu
+const attributeItems = computed<SelectMenuItem[]>(() => {
+  return props.attributes.map(attr => ({
+    label: attr.name,
+    value: attr.id,
+    type: 'item' as const,
+    icon: attr.type === 'color' ? 'i-lucide-palette' : 'i-lucide-tag',
+    disabled: false
+  }))
+})
+
 const filteredAttributes = computed(() => {
   return props.attributes.filter(attr => activeAttributeIds.value.includes(attr.id))
 })
@@ -44,20 +70,21 @@ const attributeNameToId = computed(() => {
   return map
 })
 
-function normalizeVariationAttributes(attributes: Record<string, any>): Record<string, any> {
+function normalizeVariationAttributes(attributes: Record<string, string | null>): Record<string, string> {
   if (!attributes) return {}
 
-  const normalized: Record<string, any> = {}
+  const normalized: Record<string, string> = {}
 
   Object.entries(attributes).forEach(([key, value]) => {
+    const val = value || ''
 
     if (props.attributes.some(attr => attr.id === key)) {
-      normalized[key] = value
+      normalized[key] = val
     }
     else {
       const attrId = attributeNameToId.value[key.toLowerCase()]
       if (attrId) {
-        normalized[attrId] = value
+        normalized[attrId] = val
       }
     }
   })
@@ -77,22 +104,17 @@ function getCategoryNames(cats: readonly Category[], selectedIds: string[]): str
   return names
 }
 
-// ✅ AMÉLIORATION: Détection automatique des attributs en mode edit
 watch(() => form.value.categories, (newCategoryIds) => {
-  // Ne pas exécuter la détection si les variations sont déjà initialisées
   if (productFormStore.isVariationsInitialized) {
     return
   }
 
-  // ✅ Si on a déjà des variations (mode edit), normaliser et extraire les attributs
   if (props.mode === 'edit' && form.value.variations.length > 0) {
     const usedIds = new Set<string>()
 
-    // Normaliser les variations et extraire les IDs d'attributs
     const normalizedVariations = form.value.variations.map(v => {
       const normalizedAttrs = normalizeVariationAttributes(v.attributes || {})
 
-      // Collecter les IDs d'attributs utilisés
       Object.keys(normalizedAttrs).forEach(attrId => usedIds.add(attrId))
 
       return {
@@ -101,7 +123,6 @@ watch(() => form.value.categories, (newCategoryIds) => {
       }
     })
 
-    // Mettre à jour les variations avec les attributs normalisés
     if (usedIds.size > 0) {
       productFormStore.setFormData({ variations: normalizedVariations })
       activeAttributeIds.value = Array.from(usedIds)
@@ -109,22 +130,18 @@ watch(() => form.value.categories, (newCategoryIds) => {
     }
   }
 
-  // Détection automatique basée sur les catégories (mode create)
   const categoryNames = getCategoryNames(props.categories, newCategoryIds || [])
   const suggestedIds = new Set<string>()
 
-  // Ajouter tous les attributs par défaut
   props.attributes.forEach(attr => suggestedIds.add(attr.id))
 
   let ruleApplied = false
 
-  // Appliquer les règles de détection
   for (const rule of DETECTION_RULES) {
     const match = categoryNames.some(name => rule.keywords.test(name))
 
     if (match) {
       ruleApplied = true
-      // Exclure les attributs non pertinents
       const idsToExclude = props.attributes
         .filter(a => rule.excludedAttributes.includes(a.name.toLowerCase()))
         .map(a => a.id)
@@ -132,7 +149,6 @@ watch(() => form.value.categories, (newCategoryIds) => {
     }
   }
 
-  // Mettre à jour les attributs actifs
   if (ruleApplied || activeAttributeIds.value.length === 0) {
     activeAttributeIds.value = Array.from(suggestedIds)
   }
@@ -140,9 +156,9 @@ watch(() => form.value.categories, (newCategoryIds) => {
 
 function addVariation() {
   const initialAttributes = activeAttributeIds.value.reduce((acc, id) => {
-    acc[id] = null
+    acc[id] = ''
     return acc
-  }, {} as Record<string, any>)
+  }, {} as Record<string, string>) 
 
   const newVariations = [...productFormStore.formData.variations, {
     variation_name: '',
@@ -201,7 +217,7 @@ function updateVariation(index: number, updates: Partial<VariationFormData>) {
 
 function getAttributeValues(attributeId: string) {
   const attr = props.attributes.find(a => a.id === attributeId)
-  return attr?.values?.map((v: any) => ({
+  return attr?.values?.map(v => ({
     label: v.label,
     value: v.id,
     color: v.color_code
@@ -215,7 +231,7 @@ function generateVariationName(index: number) {
       const valId = variation?.attributes[attrId]
       if (!valId) return null
       const attr = props.attributes.find(a => a.id === attrId)
-      const val = attr?.values?.find((v: any) => v.id === valId)
+      const val = attr?.values?.find(v => v.id === valId)
       return val ? val.label : null
     })
     .filter(Boolean)
@@ -226,7 +242,12 @@ function generateVariationName(index: number) {
 
 <template>
   <div class="space-y-6 p-6">
-    <UAlert v-if="!form.is_variable" icon="i-lucide-info" color="secondary" variant="soft" title="Produit simple"
+    <UAlert
+v-if="!form.is_variable"
+icon="i-lucide-info"
+color="secondary"
+variant="soft"
+title="Produit simple"
       description="Activez 'Produit avec variations' dans l'onglet Avancé pour gérer les variations." />
 
     <div v-else class="space-y-6">
@@ -242,8 +263,14 @@ function generateVariationName(index: number) {
           </div>
         </div>
 
-        <USelectMenu v-model="activeAttributeIds" :items="attributes" value-key="id" label-key="name" multiple
-          placeholder="Choisir les attributs (ex: Taille, Couleur...)" class="w-full" />
+        <USelectMenu
+v-model="activeAttributeIds"
+:items="attributeItems"
+value-key="value"
+label-key="label"
+multiple
+          placeholder="Choisir les attributs (ex: Taille, Couleur...)"
+class="w-full" />
       </UCard>
 
       <!-- BARRE D'ACTION -->
@@ -252,7 +279,11 @@ function generateVariationName(index: number) {
           <h3 class="text-lg font-semibold">Liste des variations</h3>
           <p class="text-sm text-gray-500">{{ form.variations.length }} variation(s) générée(s)</p>
         </div>
-        <UButton icon="i-lucide-plus" label="Ajouter une variation" color="primary" @click="addVariation" />
+        <UButton
+icon="i-lucide-plus"
+label="Ajouter une variation"
+color="primary"
+@click="addVariation" />
       </div>
 
       <!-- LISTE DES VARIATIONS -->
@@ -271,31 +302,48 @@ function generateVariationName(index: number) {
               </div>
 
               <div class="flex gap-1">
-                <UButton icon="i-lucide-copy" color="neutral" variant="ghost" size="sm"
+                <UButton
+icon="i-lucide-copy"
+color="neutral"
+variant="ghost"
+size="sm"
                   @click="duplicateVariation(idx)" />
-                <UButton icon="i-lucide-trash-2" color="error" variant="ghost" size="sm"
+                <UButton
+icon="i-lucide-trash-2"
+color="error"
+variant="ghost"
+size="sm"
                   @click="removeVariation(idx)" />
               </div>
             </div>
 
             <!-- Attributs Dynamiques -->
-            <div v-if="filteredAttributes.length > 0"
+            <div
+v-if="filteredAttributes.length > 0"
               class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800">
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div v-for="attr in filteredAttributes" :key="attr.id">
                   <UFormField :label="attr.name" class="mb-0">
-                    <USelectMenu :model-value="variation.attributes[attr.id]" @update:model-value="(val) => {
-                      const newAttrs = { ...variation.attributes, [attr.id]: val }
-                      updateVariation(idx, { attributes: newAttrs })
-                      generateVariationName(idx)
-                    }" :items="getAttributeValues(attr.id)" value-key="value" label-key="label" :placeholder="`Option`"
-                      class="w-full">
-                      <template #leading v-if="attr.type === 'color' && variation.attributes[attr.id]">
-                        <div class="w-4 h-4 rounded-full border border-gray-200 shadow-sm"
-                          :style="{ backgroundColor: getAttributeValues(attr.id).find((v: any) => v.value === variation.attributes[attr.id])?.color || '#ccc' }" />
+                    <USelectMenu
+:model-value="variation.attributes[attr.id]"
+:items="getAttributeValues(attr.id)"
+                      value-key="value"
+label-key="label"
+:placeholder="`Option`"
+class="w-full"
+@update:model-value="(val) => {
+                        const newAttrs = { ...variation.attributes, [attr.id]: val || '' }
+                        updateVariation(idx, { attributes: newAttrs })
+                        generateVariationName(idx)
+                      }">
+                      <template v-if="attr.type === 'color' && variation.attributes[attr.id]" #leading>
+                        <div
+class="w-4 h-4 rounded-full border border-gray-200 shadow-sm"
+                          :style="{ backgroundColor: getAttributeValues(attr.id).find(v => v.value === variation.attributes[attr.id])?.color || '#ccc' }" />
                       </template>
-                      <template #item-leading="{ item }" v-if="attr.type === 'color'">
-                        <div class="w-4 h-4 rounded-full border border-gray-200"
+                      <template v-if="attr.type === 'color'" #item-leading="{ item }">
+                        <div
+class="w-4 h-4 rounded-full border border-gray-200"
                           :style="{ backgroundColor: item.color || '#ccc' }" />
                       </template>
                     </USelectMenu>
@@ -310,49 +358,73 @@ function generateVariationName(index: number) {
             <!-- Inputs classiques (Prix, Stock...) -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <UFormField label="Prix">
-                <UInput :model-value="variation.price"
-                  @update:model-value="updateVariation(idx, { price: Number($event) })" type="number" step="500">
+                <UInput
+:model-value="variation.price"
+type="number"
+step="500"
+                  @update:model-value="updateVariation(idx, { price: Number($event) })">
                   <template #trailing><span class="text-xs text-gray-400">CFA</span></template>
                 </UInput>
               </UFormField>
 
               <UFormField label="Prix barré">
-                <UInput :model-value="variation.compare_price"
-                  @update:model-value="updateVariation(idx, { compare_price: $event ? Number($event) : undefined })"
-                  type="number" step="500">
+                <UInput
+:model-value="variation.compare_price"
+type="number"
+step="500"
+                  @update:model-value="updateVariation(idx, { compare_price: $event ? Number($event) : undefined })">
                   <template #trailing><span class="text-xs text-gray-400">CFA</span></template>
                 </UInput>
               </UFormField>
 
               <UFormField label="Stock">
-                <UInput :model-value="variation.stock_quantity"
-                  @update:model-value="updateVariation(idx, { stock_quantity: Math.max(0, Number($event)) })"
-                  type="number" min="0" class="w-full" />
+                <UInput
+:model-value="variation.stock_quantity"
+type="number"
+min="0"
+class="w-full"
+                  @update:model-value="updateVariation(idx, { stock_quantity: Math.max(0, Number($event)) })" />
               </UFormField>
             </div>
 
             <div class="flex items-center justify-between pt-2">
               <div class="flex gap-4">
-                <UInput :model-value="variation.sku" @update:model-value="updateVariation(idx, { sku: $event })"
-                  placeholder="SKU" size="sm" class="w-32" readonly />
-                <UInput :model-value="variation.barcode" @update:model-value="updateVariation(idx, { barcode: $event })"
-                  placeholder="Code-barres" size="sm" class="w-32" />
+                <UInput
+:model-value="variation.sku"
+placeholder="SKU"
+size="sm"
+class="w-32"
+readonly
+                  @update:model-value="updateVariation(idx, { sku: $event })" />
+                <UInput
+:model-value="variation.barcode"
+placeholder="Code-barres"
+size="sm"
+class="w-32"
+                  @update:model-value="updateVariation(idx, { barcode: $event })" />
               </div>
-              <USwitch :model-value="variation.is_active"
-                @update:model-value="updateVariation(idx, { is_active: $event as any })" label="Actif" />
+              <USwitch
+:model-value="variation.is_active"
+label="Actif"
+                @update:model-value="updateVariation(idx, { is_active: $event as boolean })" />
             </div>
           </div>
         </UCard>
       </div>
 
-      <div v-else
+      <div
+v-else
         class="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-800">
         <UIcon name="i-lucide-layers" class="w-12 h-12 text-gray-400 mx-auto mb-3" />
         <h3 class="text-base font-medium text-gray-900 dark:text-white">Aucune variation</h3>
         <p class="text-sm text-gray-500 mb-4">Commencez par configurer les attributs ci-dessus, puis ajoutez des
           variations.
         </p>
-        <UButton label="Ajouter une variation" color="primary" variant="soft" @click="addVariation" />
+        <UButton
+label="Ajouter une variation"
+color="primary"
+variant="soft"
+@click="addVariation" />
       </div>
     </div>
   </div>

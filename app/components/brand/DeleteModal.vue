@@ -42,7 +42,10 @@ async function handleConfirm() {
     <template #content>
       <div class="p-4 space-y-4">
         <!-- Avertissement danger -->
-        <UAlert color="error" variant="subtle" title="⚠️ Action irréversible"
+        <UAlert
+color="error"
+variant="subtle"
+title="⚠️ Action irréversible"
           description="Les marques seront supprimées définitivement et ne pourront pas être restaurées. Cette action ne peut pas être annulée."
           icon="i-lucide-alert-triangle" />
 
@@ -54,8 +57,17 @@ async function handleConfirm() {
         </div>
 
         <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
-          <UButton label="Annuler" color="neutral" variant="ghost" @click="isOpen = false" :disabled="loading" />
-          <UButton label="Supprimer définitivement" color="error" icon="i-lucide-trash-2" :loading="loading"
+          <UButton
+label="Annuler"
+color="neutral"
+variant="ghost"
+:disabled="loading"
+@click="isOpen = false" />
+          <UButton
+label="Supprimer définitivement"
+color="error"
+icon="i-lucide-trash-2"
+:loading="loading"
             @click="handleConfirm" />
         </div>
       </div>

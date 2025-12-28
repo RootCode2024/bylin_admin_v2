@@ -125,11 +125,13 @@ const oneYearLater = computed(() => {
                 Générer des codes QR d'authenticité pour ce produit
               </p>
             </div>
-            <USwitch :model-value="productFormStore.formData.requires_authenticity"
+            <USwitch
+:model-value="productFormStore.formData.requires_authenticity"
               @update:model-value="productFormStore.setFormData({ requires_authenticity: $event })" />
           </div>
 
-          <div v-if="productFormStore.formData.requires_authenticity"
+          <div
+v-if="productFormStore.formData.requires_authenticity"
             class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
 
             <!-- Statistiques actuelles (mode édition) -->
@@ -152,10 +154,14 @@ const oneYearLater = computed(() => {
 
             <!-- Nombre de codes -->
             <UFormField label="Nombre de codes d'authenticité">
-              <UInput :model-value="productFormStore.formData.authenticity_codes_count"
-                @update:model-value="productFormStore.setFormData({ authenticity_codes_count: Number($event) })"
-                type="number" min="1" max="10000" :placeholder="mode === 'create' ? '10' : 'Modifier le nombre'"
-                class="w-1/2">
+              <UInput
+:model-value="productFormStore.formData.authenticity_codes_count"
+                type="number"
+                min="1"
+max="10000"
+:placeholder="mode === 'create' ? '10' : 'Modifier le nombre'"
+class="w-1/2"
+                @update:model-value="productFormStore.setFormData({ authenticity_codes_count: Number($event) })">
                 <template #trailing>
                   <span class="text-gray-400 text-xs">codes</span>
                 </template>
@@ -174,16 +180,24 @@ const oneYearLater = computed(() => {
             </UFormField>
 
             <!-- Alerte si codes activés -->
-            <UAlert v-if="mode === 'edit' && authenticityStats && authenticityStats.activated > 0"
-              icon="i-lucide-shield-check" color="success" variant="soft" size="sm"
+            <UAlert
+v-if="mode === 'edit' && authenticityStats && authenticityStats.activated > 0"
+              icon="i-lucide-shield-check"
+color="success"
+variant="soft"
+size="sm"
               :title="`${authenticityStats.activated} codes déjà activés`"
               description="Ces codes sont liés à des produits vendus et ne peuvent pas être supprimés." />
           </div>
         </div>
 
         <!-- Message si pas Bylin -->
-        <UAlert v-else-if="productFormStore.formData.requires_authenticity" icon="i-lucide-info" color="neutral"
-          variant="soft" title="Authentification réservée à Bylin"
+        <UAlert
+v-else-if="productFormStore.formData.requires_authenticity"
+icon="i-lucide-info"
+color="neutral"
+          variant="soft"
+title="Authentification réservée à Bylin"
           description="Les codes d'authenticité ne sont disponibles que pour les produits de la marque Bylin." />
 
         <!-- Produit variable -->
@@ -197,13 +211,20 @@ const oneYearLater = computed(() => {
                 Ce produit a différentes options (taille, couleur, etc.)
               </p>
             </div>
-            <USwitch :model-value="productFormStore.formData.is_variable"
+            <USwitch
+:model-value="productFormStore.formData.is_variable"
               @update:model-value="productFormStore.setFormData({ is_variable: $event })" />
           </div>
 
-          <div v-if="productFormStore.formData.is_variable"
+          <div
+v-if="productFormStore.formData.is_variable"
             class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <UAlert icon="i-lucide-info" color="primary" variant="soft" size="sm" title="Variations activées"
+            <UAlert
+icon="i-lucide-info"
+color="primary"
+variant="soft"
+size="sm"
+title="Variations activées"
               description="Vous pouvez maintenant gérer les variations dans l'onglet 'Variations'" />
           </div>
         </div>
@@ -219,17 +240,23 @@ const oneYearLater = computed(() => {
                 Permettre aux clients de précommander ce produit
               </p>
             </div>
-            <USwitch :model-value="productFormStore.formData.is_preorder_enabled"
+            <USwitch
+:model-value="productFormStore.formData.is_preorder_enabled"
               @update:model-value="productFormStore.setFormData({ is_preorder_enabled: $event })" />
           </div>
 
-          <div v-if="productFormStore.formData.is_preorder_enabled"
+          <div
+v-if="productFormStore.formData.is_preorder_enabled"
             class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
 
             <UFormField label="Date de disponibilité" required>
-              <UInput :model-value="productFormStore.formData.preorder_available_date"
-                @update:model-value="productFormStore.setFormData({ preorder_available_date: $event })" type="date"
-                :min="tomorrow" :max="oneYearLater" class="w-1/2" />
+              <UInput
+:model-value="productFormStore.formData.preorder_available_date"
+                type="date"
+:min="tomorrow"
+                :max="oneYearLater"
+class="w-1/2"
+@update:model-value="productFormStore.setFormData({ preorder_available_date: $event })" />
               <template #hint>
                 <span class="text-xs text-gray-500">
                   Date à laquelle le produit sera disponible (minimum demain, maximum 1 an)
@@ -238,9 +265,13 @@ const oneYearLater = computed(() => {
             </UFormField>
 
             <UFormField label="Limite de précommandes">
-              <UInput :model-value="productFormStore.formData.preorder_limit"
-                @update:model-value="productFormStore.setFormData({ preorder_limit: $event ? Number($event) : undefined })"
-                type="number" min="1" placeholder="Illimité" class="w-1/2">
+              <UInput
+:model-value="productFormStore.formData.preorder_limit"
+                type="number"
+                min="1"
+placeholder="Illimité"
+class="w-1/2"
+@update:model-value="productFormStore.setFormData({ preorder_limit: $event ? Number($event) : undefined })">
                 <template #trailing>
                   <span class="text-gray-400 text-xs">unités</span>
                 </template>
@@ -251,18 +282,24 @@ const oneYearLater = computed(() => {
             </UFormField>
 
             <UFormField label="Message de précommande">
-              <UTextarea :model-value="productFormStore.formData.preorder_message"
-                @update:model-value="productFormStore.setFormData({ preorder_message: $event })" :rows="2"
-                placeholder="Ex: Disponible à partir du 15 janvier 2025" class="w-full" />
+              <UTextarea
+:model-value="productFormStore.formData.preorder_message"
+                :rows="2"
+placeholder="Ex: Disponible à partir du 15 janvier 2025"
+                class="w-full"
+@update:model-value="productFormStore.setFormData({ preorder_message: $event })" />
               <template #hint>
                 <span class="text-xs text-gray-500">Message affiché sur la page produit</span>
               </template>
             </UFormField>
 
             <UFormField label="Conditions de précommande">
-              <UTextarea :model-value="productFormStore.formData.preorder_terms"
-                @update:model-value="productFormStore.setFormData({ preorder_terms: $event })" :rows="3"
-                placeholder="Conditions générales de précommande..." class="w-full" />
+              <UTextarea
+:model-value="productFormStore.formData.preorder_terms"
+                :rows="3"
+placeholder="Conditions générales de précommande..."
+                class="w-full"
+@update:model-value="productFormStore.setFormData({ preorder_terms: $event })" />
               <template #hint>
                 <span class="text-xs text-gray-500">Conditions et informations légales</span>
               </template>
@@ -273,7 +310,11 @@ const oneYearLater = computed(() => {
     </UFormField>
 
     <!-- Info helper -->
-    <UAlert icon="i-lucide-lightbulb" color="primary" variant="soft" title="Besoin d'aide ?">
+    <UAlert
+icon="i-lucide-lightbulb"
+color="primary"
+variant="soft"
+title="Besoin d'aide ?">
       <template #description>
         <ul class="text-sm space-y-1 mt-2">
           <li>• <strong>Authentification</strong> : Réservée aux produits de marque nécessitant une vérification</li>

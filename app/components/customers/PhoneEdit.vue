@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { z } from 'zod' // Importez z depuis zod
 import { phoneSchema, popularCountries } from '~/utils/validation'
 import { formatPhoneNumber } from '~/utils/format'
 
@@ -35,15 +36,23 @@ const debouncedValidation = useDebounceFn(async () => {
     validationStatus.value = 'valid'
     errorMessage.value = ''
 
-    // Émettre le numéro formaté
     const formatted = formatPhoneNumber(result.countryCode, result.number)
     emit('update:modelValue', {
       countryCode: result.countryCode,
       number: formatted
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     validationStatus.value = 'invalid'
-    errorMessage.value = error.errors?.[0]?.message || 'Numéro invalide'
+
+    if (error instanceof z.ZodError) {
+      errorMessage.value = error.issues[0]?.message || 'Numéro invalide'
+    } else if (error instanceof Error) {
+      errorMessage.value = error.message
+    } else if (typeof error === 'string') {
+      errorMessage.value = error
+    } else {
+      errorMessage.value = 'Numéro invalide'
+    }
   } finally {
     isValidating.value = false
   }
@@ -68,7 +77,6 @@ const selectedCountryData = computed<Country>(() => {
   )
 })
 
-
 const inputColor = computed(() => {
   if (validationStatus.value === 'valid') return 'success'
   if (validationStatus.value === 'invalid') return 'error'
@@ -80,7 +88,11 @@ const inputColor = computed(() => {
   <div class="space-y-2">
     <div class="flex gap-2">
       <!-- Sélecteur de pays -->
-      <USelectMenu v-model="selectedCountry" :items="[...popularCountries]" value-key="code" :disabled="disabled"
+      <USelectMenu
+v-model="selectedCountry"
+:items="[...popularCountries]"
+value-key="code"
+:disabled="disabled"
         class="w-48">
         <template #leading>
           <div class="flex items-center gap-2">
@@ -101,8 +113,14 @@ const inputColor = computed(() => {
       </USelectMenu>
 
       <!-- Champ de numéro -->
-      <UInput v-model="phoneNumber" type="tel" :disabled="disabled" :color="inputColor" :loading="isValidating"
-        placeholder="00 00 00 00" class="flex-1">
+      <UInput
+v-model="phoneNumber"
+type="tel"
+:disabled="disabled"
+:color="inputColor"
+:loading="isValidating"
+        placeholder="00 00 00 00"
+class="flex-1">
         <template #trailing>
           <UIcon v-if="validationStatus === 'valid'" name="i-lucide-check-circle" class="text-green-500" />
           <UIcon v-else-if="validationStatus === 'invalid'" name="i-lucide-alert-circle" class="text-red-500" />

@@ -42,8 +42,18 @@ async function onConfirm() {
         </div>
 
         <div class="flex items-center justify-end gap-3">
-          <UButton label="Annuler" color="neutral" variant="ghost" @click="close" :disabled="loading" />
-          <UButton label="Restaurer" color="success" variant="solid" :loading="loading" @click="onConfirm" />
+          <UButton
+label="Annuler"
+color="neutral"
+variant="ghost"
+:disabled="loading"
+@click="close" />
+          <UButton
+label="Restaurer"
+color="success"
+variant="solid"
+:loading="loading"
+@click="onConfirm" />
         </div>
       </div>
     </template>

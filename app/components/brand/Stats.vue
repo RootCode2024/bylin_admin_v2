@@ -65,11 +65,14 @@ const items = computed(() => [
             {{ loading ? '...' : item.value }}
           </p>
         </div>
-        <div :class="[
+        <div
+:class="[
           'flex items-center justify-center w-12 h-12 rounded-full',
           `bg-${item.color}/10`
         ]">
-          <UIcon :name="item.icon" :class="[
+          <UIcon
+:name="item.icon"
+:class="[
             'w-6 h-6',
             `text-${item.color}`
           ]" />

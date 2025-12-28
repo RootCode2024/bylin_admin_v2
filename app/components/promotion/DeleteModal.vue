@@ -40,7 +40,8 @@ async function handleDelete() {
       <div class="p-4 space-y-4">
         <div
           class="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-          <UIcon name="i-lucide-alert-triangle"
+          <UIcon
+name="i-lucide-alert-triangle"
             class="size-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
           <div class="flex-1 text-sm">
             <p class="font-medium text-amber-900 dark:text-amber-100 mb-1">
@@ -54,9 +55,18 @@ async function handleDelete() {
         </div>
 
         <div class="flex justify-end gap-3 pt-4 border-t">
-          <UButton label="Annuler" color="neutral" variant="ghost" @click="open = false" :disabled="loading" />
-          <UButton :label="count === 1 ? 'Supprimer' : `Supprimer (${count})`" color="error" icon="i-lucide-trash-2"
-            :loading="loading" @click="handleDelete" />
+          <UButton
+label="Annuler"
+color="neutral"
+variant="ghost"
+:disabled="loading"
+@click="open = false" />
+          <UButton
+:label="count === 1 ? 'Supprimer' : `Supprimer (${count})`"
+color="error"
+icon="i-lucide-trash-2"
+            :loading="loading"
+@click="handleDelete" />
         </div>
       </div>
     </template>

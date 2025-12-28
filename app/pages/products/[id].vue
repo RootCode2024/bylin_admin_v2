@@ -24,16 +24,37 @@ const productId = route.params.id as string
 const isSaving = ref(false)
 const hasUnsavedChanges = ref(false)
 
-// ✅ Modal de suppression
 const deleteModal = ref({
   open: false,
   ids: [] as string[]
 })
 
-// ✅ Flag pour désactiver temporairement les watchers
 const skipWatchers = ref(false)
 
-const product = computed(() => state.value.currentProduct)
+const product = computed(() => {
+  const currentProduct = state.value.currentProduct
+  if (!currentProduct) return null
+
+  return {
+    ...currentProduct,
+    description: currentProduct.description ?? undefined,
+    short_description: currentProduct.short_description ?? undefined,
+    compare_price: currentProduct.compare_price ?? undefined,
+    cost_price: currentProduct.cost_price ?? undefined,
+    barcode: currentProduct.barcode ?? undefined,
+    weight: currentProduct.weight ?? undefined,
+    dimensions: currentProduct.dimensions ?? undefined,
+    preorder_available_date: currentProduct.preorder_available_date ?? undefined,
+    preorder_limit: currentProduct.preorder_limit ?? undefined,
+    preorder_message: currentProduct.preorder_message ?? undefined,
+    preorder_terms: currentProduct.preorder_terms ?? undefined,
+    preorder_enabled_at: currentProduct.preorder_enabled_at ?? undefined,
+    meta_title: currentProduct.meta_title ?? undefined,
+    meta_description: currentProduct.meta_description ?? undefined,
+    meta_data: currentProduct.meta_data ?? undefined,
+    deleted_at: currentProduct.deleted_at ?? undefined
+  }
+})
 
 async function loadProduct() {
   const data = await fetchProduct(productId)
@@ -44,13 +65,11 @@ async function loadProduct() {
     return
   }
 
-  // ✅ Désactiver les watchers pendant l'initialisation
   skipWatchers.value = true
 
   // Initialiser le store avec les données du produit
   productFormStore.initializeFromProduct(data)
 
-  // ✅ Réactiver les watchers après l'initialisation (nextTick)
   await nextTick()
   hasUnsavedChanges.value = false
   skipWatchers.value = false
@@ -64,12 +83,10 @@ async function handleSave() {
       .filter(img => img.isNew && img.file)
       .map(img => img.file)
 
-    // Préparer les données similaires à la création
     const dataToSend: any = {
       ...productFormStore.formData,
       images: newImageFiles,
       images_to_delete: productFormStore.imagesToDelete,
-      // S'assurer des valeurs minimales
       price: Math.max(0.01, productFormStore.formData.price || 0),
       stock_quantity: Math.max(0, productFormStore.formData.stock_quantity || 0),
       low_stock_threshold: Math.max(0, productFormStore.formData.low_stock_threshold || 0)
@@ -88,7 +105,6 @@ async function handleSave() {
       delete dataToSend.preorder_limit
     }
 
-    // Préparer les variations si produit variable
     if (dataToSend.is_variable && dataToSend.variations.length > 0) {
       dataToSend.variations = dataToSend.variations.map((variation: any) => {
         const cleanVariation = {
@@ -125,7 +141,6 @@ async function handleSave() {
     if (updated) {
       toast.add({ title: 'Produit mis à jour', color: 'success' })
 
-      // ✅ Recharger le produit pour synchroniser les données
       await loadProduct()
     }
   } catch (error: any) {
@@ -200,9 +215,16 @@ onBeforeRouteLeave((to, from, next) => {
 
 <template>
   <div class="w-full">
-    <ProductForm v-if="product" :product="product" :is-saving="isSaving"
-      :has-unsaved-changes="hasUnsavedChanges" mode="edit" @save="handleSave" @duplicate="handleDuplicate"
-      @delete="handleDelete" @cancel="router.push('/products')" />
+    <ProductForm
+      v-if="product"
+      :product="product"
+      :is-saving="isSaving"
+      :has-unsaved-changes="hasUnsavedChanges"
+      mode="edit"
+      @save="handleSave"
+      @duplicate="handleDuplicate"
+      @delete="handleDelete"
+      @cancel="router.push('/products')" />
 
     <div v-else-if="isLoading" class="p-8">
       <USkeleton class="h-8 w-64 mb-4" />

@@ -89,7 +89,12 @@ async function handleTogglePreorder() {
 <template>
   <div class="lg:w-[30%] space-y-6">
     <!-- Info Card - Mode création uniquement (déplacé en haut) -->
-    <UAlert v-if="!isEditMode" icon="i-lucide-info" color="primary" variant="soft" title="Conseil"
+    <UAlert
+v-if="!isEditMode"
+icon="i-lucide-info"
+color="primary"
+variant="soft"
+title="Conseil"
       description="Remplissez au minimum le nom, la marque et le prix pour créer le produit. Vous pourrez compléter les autres informations plus tard." />
 
     <!-- Preview Card -->
@@ -102,8 +107,11 @@ async function handleTogglePreorder() {
         <!-- Image principale -->
         <div
           class="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-          <img v-if="productFormStore.images[0]?.url" :src="productFormStore.images[0].url"
-            :alt="productFormStore.formData.name || 'Aperçu'" class="w-full h-full object-cover">
+          <img
+v-if="productFormStore.images[0]?.url"
+:src="productFormStore.images[0].url"
+            :alt="productFormStore.formData.name || 'Aperçu'"
+class="w-full h-full object-cover">
           <div v-else class="w-full h-full flex items-center justify-center">
             <UIcon name="i-lucide-image" class="w-12 h-12 text-gray-400" />
           </div>
@@ -114,9 +122,14 @@ async function handleTogglePreorder() {
           <label class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 block uppercase tracking-wide">
             Statut du produit
           </label>
-          <USelectMenu :model-value="productFormStore.formData.status"
-            @update:model-value="productFormStore.setFormData({ status: $event as ProductStatus })"
-            :items="statusOptions" value-key="value" label-key="label" size="md" class="w-full" />
+          <USelectMenu
+:model-value="productFormStore.formData.status"
+            :items="statusOptions"
+            value-key="value"
+label-key="label"
+size="md"
+class="w-full"
+@update:model-value="productFormStore.setFormData({ status: $event as ProductStatus })" />
         </div>
 
         <!-- Stock -->
@@ -129,8 +142,11 @@ async function handleTogglePreorder() {
             <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 space-y-4">
               <div class="flex items-center justify-between">
                 <span class="text-sm text-gray-600 dark:text-gray-400">Stock actuel</span>
-                <UBadge :label="`${product?.stock_quantity || 0} unités`"
-                  :color="(product?.stock_quantity || 0) > 0 ? 'success' : 'error'" variant="subtle" size="lg" />
+                <UBadge
+:label="`${product?.stock_quantity || 0} unités`"
+                  :color="(product?.stock_quantity || 0) > 0 ? 'success' : 'error'"
+variant="subtle"
+size="lg" />
               </div>
 
               <!-- Divider -->
@@ -140,16 +156,30 @@ async function handleTogglePreorder() {
                 <label class="text-xs font-medium text-gray-600 dark:text-gray-400 block">
                   Ajuster le stock
                 </label>
-                <USelectMenu v-model="stockAdjustment.operation" :items="[
+                <USelectMenu
+v-model="stockAdjustment.operation"
+:items="[
                   { label: 'Définir', value: 'set' },
                   { label: 'Ajouter', value: 'add' },
                   { label: 'Retirer', value: 'sub' }
-                ]" value-key="value" label-key="label" size="md" class="w-full" />
+                ]"
+value-key="value"
+label-key="label"
+size="md"
+class="w-full" />
 
                 <div class="flex gap-2">
-                  <UInput v-model.number="stockAdjustment.quantity" type="number" placeholder="Quantité" size="md"
+                  <UInput
+v-model.number="stockAdjustment.quantity"
+type="number"
+placeholder="Quantité"
+size="md"
                     class="flex-1" />
-                  <UButton icon="i-lucide-check" size="md" color="primary" @click="handleStockUpdate" />
+                  <UButton
+icon="i-lucide-check"
+size="md"
+color="primary"
+@click="handleStockUpdate" />
                 </div>
               </div>
             </div>
@@ -157,9 +187,13 @@ async function handleTogglePreorder() {
 
           <!-- Mode création: Simple input -->
           <template v-else>
-            <UInput :model-value="productFormStore.formData.stock_quantity"
-              @update:model-value="productFormStore.setFormData({ stock_quantity: Number($event) })" type="number"
-              placeholder="0" size="md" class="w-full" />
+            <UInput
+:model-value="productFormStore.formData.stock_quantity"
+              type="number"
+placeholder="0"
+              size="md"
+class="w-full"
+@update:model-value="productFormStore.setFormData({ stock_quantity: Number($event) })" />
           </template>
         </div>
       </div>
@@ -180,11 +214,12 @@ async function handleTogglePreorder() {
               Produit mis en avant
             </label>
           </div>
-          <USwitch :model-value="productFormStore.formData.is_featured"
+          <USwitch
+:model-value="productFormStore.formData.is_featured"
             @update:model-value="productFormStore.setFormData({ is_featured: $event })" />
         </div>
 
-        <div class="border-t border-gray-200 dark:border-gray-800"></div>
+        <div class="border-t border-gray-200 dark:border-gray-800"/>
 
         <!-- Nouveau produit -->
         <div class="flex items-center justify-between py-1">
@@ -194,11 +229,12 @@ async function handleTogglePreorder() {
               Nouveau produit
             </label>
           </div>
-          <USwitch :model-value="productFormStore.formData.is_new"
+          <USwitch
+:model-value="productFormStore.formData.is_new"
             @update:model-value="productFormStore.setFormData({ is_new: $event })" />
         </div>
 
-        <div class="border-t border-gray-200 dark:border-gray-800"></div>
+        <div class="border-t border-gray-200 dark:border-gray-800"/>
 
         <!-- En promotion -->
         <div class="flex items-center justify-between py-1">
@@ -208,7 +244,8 @@ async function handleTogglePreorder() {
               En promotion
             </label>
           </div>
-          <USwitch :model-value="productFormStore.formData.is_on_sale"
+          <USwitch
+:model-value="productFormStore.formData.is_on_sale"
             @update:model-value="productFormStore.setFormData({ is_on_sale: $event })" />
         </div>
       </div>
@@ -222,26 +259,35 @@ async function handleTogglePreorder() {
             <UIcon name="i-lucide-calendar-clock" class="w-4 h-4" />
             <h3 class="text-sm font-semibold">Précommande</h3>
           </div>
-          <USwitch :model-value="productFormStore.formData.is_preorder_enabled"
+          <USwitch
+:model-value="productFormStore.formData.is_preorder_enabled"
             @update:model-value="isEditMode ? handleTogglePreorder() : productFormStore.setFormData({ is_preorder_enabled: $event })" />
         </div>
       </template>
 
       <div v-if="productFormStore.formData.is_preorder_enabled" class="space-y-4">
         <UFormField label="Date de disponibilité">
-          <UInput :model-value="productFormStore.formData.preorder_available_date"
-            @update:model-value="productFormStore.setFormData({ preorder_available_date: $event })" type="date"
-            size="md" class="w-full" />
+          <UInput
+:model-value="productFormStore.formData.preorder_available_date"
+            type="date"
+size="md"
+            class="w-full"
+@update:model-value="productFormStore.setFormData({ preorder_available_date: $event })" />
         </UFormField>
 
         <UFormField label="Limite de précommandes">
-          <UInput :model-value="productFormStore.formData.preorder_limit"
-            @update:model-value="productFormStore.setFormData({ preorder_limit: $event ? Number($event) : undefined })"
-            type="number" placeholder="Illimité" size="md" class="w-full" />
+          <UInput
+:model-value="productFormStore.formData.preorder_limit"
+            type="number"
+            placeholder="Illimité"
+size="md"
+class="w-full"
+@update:model-value="productFormStore.setFormData({ preorder_limit: $event ? Number($event) : undefined })" />
         </UFormField>
 
         <!-- Compteur précommandes -->
-        <div v-if="isEditMode && product?.preorder_count && product.preorder_count > 0"
+        <div
+v-if="isEditMode && product?.preorder_count && product.preorder_count > 0"
           class="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
           <UIcon name="i-lucide-shopping-cart" class="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <span class="text-sm font-medium text-blue-700 dark:text-blue-300">

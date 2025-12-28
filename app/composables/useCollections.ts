@@ -7,6 +7,7 @@ import type {
   ApiResponse,
   LoadingState,
 } from "~/types/collection";
+import type { ValidationErrors, ApiErrorResponse } from "~/types/validation";
 
 export const useCollections = () => {
   const client = useSanctumClient();
@@ -62,6 +63,36 @@ export const useCollections = () => {
   });
 
   // ============================================================================
+  // UTILITAIRES D'ERREUR
+  // ============================================================================
+
+  /**
+   * Obtient le message d'erreur d'une exception
+   */
+  function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return "Une erreur inconnue est survenue";
+  }
+
+  /**
+   * Obtient le message d'erreur de l'API
+   */
+  function getApiErrorMessage(error: unknown): string {
+    const apiError = error as ApiErrorResponse;
+    return apiError.response?._data?.message || getErrorMessage(error);
+  }
+
+  /**
+   * Obtient les erreurs de validation de l'API
+   */
+  function getValidationErrors(error: unknown): ValidationErrors | null {
+    const apiError = error as ApiErrorResponse;
+    return apiError.response?._data?.errors || null;
+  }
+
+  // ============================================================================
   // ACTIONS CRUD
   // ============================================================================
 
@@ -70,7 +101,7 @@ export const useCollections = () => {
     state.value.error = null;
 
     try {
-      const params: Record<string, any> = {
+      const params: Record<string, string | number | boolean | undefined> = {
         page: state.value.filters.page,
         per_page: state.value.filters.per_page,
         search: state.value.filters.search || undefined,
@@ -107,7 +138,7 @@ export const useCollections = () => {
         { method: "GET", params }
       );
 
-      console.log('Fetched collections response:', response);
+      console.log("Fetched collections response:", response);
 
       if (response.success) {
         state.value.collections = response.data;
@@ -132,9 +163,9 @@ export const useCollections = () => {
       } else {
         throw new Error(response.message || "Erreur de chargement");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       state.value.loadingState = "error";
-      state.value.error = error.message;
+      state.value.error = getErrorMessage(error);
       state.value.collections = [];
       handleError(error, "Impossible de charger les collections");
     }
@@ -156,9 +187,9 @@ export const useCollections = () => {
         return response.data;
       }
       return null;
-    } catch (error: any) {
+    } catch (error: unknown) {
       state.value.loadingState = "error";
-      state.value.error = error.message;
+      state.value.error = getErrorMessage(error);
       handleError(error, "Impossible de charger la collection");
       return null;
     }
@@ -191,9 +222,9 @@ export const useCollections = () => {
         return response.data;
       }
       return null;
-    } catch (error: any) {
+    } catch (error: unknown) {
       state.value.loadingState = "error";
-      state.value.error = error.message;
+      state.value.error = getErrorMessage(error);
       handleValidationErrors(error);
       return null;
     }
@@ -234,9 +265,9 @@ export const useCollections = () => {
         return response.data;
       }
       return null;
-    } catch (error: any) {
+    } catch (error: unknown) {
       state.value.loadingState = "error";
-      state.value.error = error.message;
+      state.value.error = getErrorMessage(error);
       handleValidationErrors(error);
       return null;
     }
@@ -276,9 +307,9 @@ export const useCollections = () => {
         return true;
       }
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       state.value.loadingState = "error";
-      state.value.error = error.message;
+      state.value.error = getErrorMessage(error);
       handleError(error, "Erreur lors de la suppression");
       return false;
     }
@@ -328,18 +359,13 @@ export const useCollections = () => {
       });
 
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       state.value.loadingState = "error";
-
-      const errorMessage =
-        error.response?._data?.message ||
-        error.data?.message ||
-        error.message ||
-        "Erreur lors du changement de statut";
+      const errorMessage = getApiErrorMessage(error);
 
       toast.add({
         title: "Erreur",
-        description: errorMessage,
+        description: errorMessage || "Erreur lors du changement de statut",
         color: "error",
         icon: "i-lucide-alert-triangle",
       });
@@ -369,7 +395,7 @@ export const useCollections = () => {
         return true;
       }
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Erreur lors de la réorganisation");
       return false;
     }
@@ -385,8 +411,8 @@ export const useCollections = () => {
       if (response.success) {
         state.value.statistics = response.data;
       }
-    } catch (error) {
-      console.error("Erreur stats collections", error);
+    } catch (_error: unknown) {
+      console.error("Erreur stats collections", _error);
     }
   }
 
@@ -460,7 +486,7 @@ export const useCollections = () => {
     try {
       state.value.loadingState = "loading";
 
-      const data: Record<string, any> = {};
+      const data: Record<string, unknown> = {};
       data[`${imageField}_to_delete`] = true;
 
       const result = await updateCollection(id, data);
@@ -478,7 +504,7 @@ export const useCollections = () => {
       }
 
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       state.value.loadingState = "error";
       handleError(error, "Erreur lors de la suppression de l'image");
       return false;
@@ -499,7 +525,7 @@ export const useCollections = () => {
     try {
       state.value.loadingState = "loading";
 
-      const data: Record<string, any> = {};
+      const data: Record<string, unknown> = {};
       data[imageField] = file;
 
       const result = await updateCollection(id, data);
@@ -517,7 +543,7 @@ export const useCollections = () => {
       }
 
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       state.value.loadingState = "error";
       handleError(error, "Erreur lors de la mise à jour de l'image");
       return false;
@@ -528,12 +554,12 @@ export const useCollections = () => {
   // HELPERS - GENERAL
   // ============================================================================
 
-  function handleValidationErrors(error: any): void {
-    const errors = error.response?._data?.errors;
+  function handleValidationErrors(error: unknown): void {
+    const errors = getValidationErrors(error);
 
     if (errors && typeof errors === "object") {
       const errorMessages = Object.entries(errors)
-        .map(([_, messages]) =>
+        .map(([_field, messages]) =>
           Array.isArray(messages) ? messages[0] : messages
         )
         .join("\n");
@@ -550,10 +576,12 @@ export const useCollections = () => {
     }
   }
 
-  function handleError(error: any, defaultMessage: string): void {
+  function handleError(error: unknown, defaultMessage: string): void {
+    const errorMessage = getApiErrorMessage(error);
+
     toast.add({
       title: "Erreur",
-      description: error.response?._data?.message || defaultMessage,
+      description: errorMessage || defaultMessage,
       color: "error",
       icon: "i-lucide-alert-triangle",
     });
@@ -563,7 +591,7 @@ export const useCollections = () => {
    * Enhanced objectToFormData with better handling for files and deletion flags
    */
   function objectToFormData(
-    obj: any,
+    obj: object,
     form?: FormData,
     namespace?: string
   ): FormData {
@@ -572,42 +600,40 @@ export const useCollections = () => {
     for (const property in obj) {
       if (
         !Object.prototype.hasOwnProperty.call(obj, property) ||
-        obj[property] === undefined
+        (obj as Record<string, unknown>)[property] === undefined
       ) {
         continue;
       }
 
       const formKey = namespace ? `${namespace}[${property}]` : property;
+      const value = (obj as Record<string, unknown>)[property];
 
       // Handle deletion flags (e.g., cover_image_to_delete)
-      if (property.endsWith("_to_delete") && obj[property] === true) {
+      if (property.endsWith("_to_delete") && value === true) {
         fd.append(formKey, "1");
         continue;
       }
 
-      if (obj[property] instanceof Date) {
-        fd.append(formKey, obj[property].toISOString());
-      } else if (
-        obj[property] instanceof File ||
-        obj[property] instanceof Blob
-      ) {
-        fd.append(formKey, obj[property]);
-      } else if (Array.isArray(obj[property])) {
-        obj[property].forEach((item: any, index: number) => {
+      if (value instanceof Date) {
+        fd.append(formKey, value.toISOString());
+      } else if (value instanceof File || value instanceof Blob) {
+        fd.append(formKey, value);
+      } else if (Array.isArray(value)) {
+        value.forEach((item: unknown, index: number) => {
           if (item instanceof File) {
             fd.append(`${formKey}[]`, item);
-          } else if (typeof item === "object") {
+          } else if (typeof item === "object" && item !== null) {
             objectToFormData(item, fd, `${formKey}[${index}]`);
-          } else {
-            fd.append(`${formKey}[]`, item);
+          } else if (item !== undefined && item !== null) {
+            fd.append(`${formKey}[]`, String(item));
           }
         });
-      } else if (typeof obj[property] === "object" && obj[property] !== null) {
-        objectToFormData(obj[property], fd, formKey);
-      } else if (typeof obj[property] === "boolean") {
-        fd.append(formKey, obj[property] ? "1" : "0");
-      } else {
-        fd.append(formKey, String(obj[property]));
+      } else if (typeof value === "object" && value !== null) {
+        objectToFormData(value, fd, formKey);
+      } else if (typeof value === "boolean") {
+        fd.append(formKey, value ? "1" : "0");
+      } else if (value !== null) {
+        fd.append(formKey, String(value));
       }
     }
     return fd;

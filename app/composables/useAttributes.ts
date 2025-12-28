@@ -1,20 +1,15 @@
 import type {
   Attribute,
-  AttributeValue,
   AttributeFilters,
   AttributeStatistics,
   LaravelPaginator,
   ApiResponse,
   LoadingState,
-  ValueReorderData,
+  AttributeValue as _AttributeValue,
+  ValueReorderData as _ValueReorderData,
+  AttributeType,
 } from "~/types/attribute";
 
-/**
- * Composable de gestion des attributs
- *
- * Fournit toutes les fonctionnalités CRUD et de gestion des attributs
- * avec état partagé, pagination, filtres et gestion d'erreurs
- */
 export const useAttributes = () => {
   const client = useSanctumClient();
   const toast = useToast();
@@ -26,7 +21,10 @@ export const useAttributes = () => {
 
   const attributes = useState<Attribute[]>("attributes", () => []);
   const loading = useState<boolean>("attributes:loading", () => false);
-  const loadingState = useState<LoadingState>("attributes:loadingState", () => "idle");
+  const loadingState = useState<LoadingState>(
+    "attributes:loadingState",
+    () => "idle"
+  );
 
   const pagination = useState("attributes:pagination", () => ({
     pageIndex: 0,
@@ -48,8 +46,14 @@ export const useAttributes = () => {
     sort_direction: "asc",
   }));
 
-  const currentAttribute = useState<Attribute | null>("attributes:current", () => null);
-  const statistics = useState<AttributeStatistics | null>("attributes:statistics", () => null);
+  const currentAttribute = useState<Attribute | null>(
+    "attributes:current",
+    () => null
+  );
+  const statistics = useState<AttributeStatistics | null>(
+    "attributes:statistics",
+    () => null
+  );
   const lastError = useState<string | null>("attributes:error", () => null);
 
   // ============================================================================
@@ -82,7 +86,7 @@ export const useAttributes = () => {
     lastError.value = null;
 
     try {
-      const params: Record<string, any> = {
+      const params: Record<string, string | number | boolean | undefined> = {
         page: pagination.value.pageIndex + 1,
         per_page: pagination.value.pageSize,
         search: filters.value.search || undefined,
@@ -117,15 +121,17 @@ export const useAttributes = () => {
       } else {
         throw new Error(response.message || "Erreur lors du chargement");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       loadingState.value = "error";
-      lastError.value = error.message || "Erreur inconnue";
+      lastError.value = getErrorMessage(error);
       attributes.value = [];
       pagination.value.total = 0;
 
       toast.add({
         title: "Erreur de chargement",
-        description: error.response?._data?.message || "Impossible de charger les attributs",
+        description:
+          getErrorResponseMessage(error) ||
+          "Impossible de charger les attributs",
         color: "error",
         icon: "i-lucide-alert-circle",
       });
@@ -149,10 +155,11 @@ export const useAttributes = () => {
       }
 
       return null;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.add({
         title: "Erreur",
-        description: error.response?._data?.message || "Impossible de charger l'attribut",
+        description:
+          getErrorResponseMessage(error) || "Impossible de charger l'attribut",
         color: "error",
       });
       return null;
@@ -161,7 +168,9 @@ export const useAttributes = () => {
     }
   }
 
-  async function createAttribute(data: FormData | Record<string, any>): Promise<boolean> {
+  async function createAttribute(
+    data: FormData | Record<string, unknown>
+  ): Promise<boolean> {
     loading.value = true;
     lastError.value = null;
 
@@ -186,8 +195,8 @@ export const useAttributes = () => {
       }
 
       return false;
-    } catch (error: any) {
-      lastError.value = error.message;
+    } catch (error: unknown) {
+      lastError.value = getErrorMessage(error);
       handleValidationErrors(error);
       return false;
     } finally {
@@ -195,7 +204,10 @@ export const useAttributes = () => {
     }
   }
 
-  async function updateAttribute(id: string, data: FormData | Record<string, any>): Promise<boolean> {
+  async function updateAttribute(
+    id: string,
+    data: FormData | Record<string, unknown>
+  ): Promise<boolean> {
     loading.value = true;
     lastError.value = null;
 
@@ -215,7 +227,8 @@ export const useAttributes = () => {
       if (response.success) {
         toast.add({
           title: "Attribut mis à jour",
-          description: response.message || "L'attribut a été mis à jour avec succès",
+          description:
+            response.message || "L'attribut a été mis à jour avec succès",
           color: "success",
           icon: "i-lucide-check-circle",
         });
@@ -225,8 +238,8 @@ export const useAttributes = () => {
       }
 
       return false;
-    } catch (error: any) {
-      lastError.value = error.message;
+    } catch (error: unknown) {
+      lastError.value = getErrorMessage(error);
       handleValidationErrors(error);
       return false;
     } finally {
@@ -256,7 +269,10 @@ export const useAttributes = () => {
 
       if (response.success) {
         const count = ids.length;
-        const message = count === 1 ? "L'attribut a été supprimé" : `${count} attributs ont été supprimés`;
+        const message =
+          count === 1
+            ? "L'attribut a été supprimé"
+            : `${count} attributs ont été supprimés`;
 
         toast.add({
           title: "Suppression réussie",
@@ -271,10 +287,11 @@ export const useAttributes = () => {
       }
 
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.add({
         title: "Erreur de suppression",
-        description: error.response?._data?.message || "Impossible de supprimer",
+        description:
+          getErrorResponseMessage(error) || "Impossible de supprimer",
         color: "error",
       });
       return false;
@@ -305,7 +322,10 @@ export const useAttributes = () => {
 
       if (response.success) {
         const count = ids.length;
-        const message = count === 1 ? "L'attribut a été restauré" : `${count} attributs ont été restaurés`;
+        const message =
+          count === 1
+            ? "L'attribut a été restauré"
+            : `${count} attributs ont été restaurés`;
 
         toast.add({
           title: "Restauration réussie",
@@ -319,10 +339,11 @@ export const useAttributes = () => {
       }
 
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.add({
         title: "Erreur de restauration",
-        description: error.response?._data?.message || "Impossible de restaurer",
+        description:
+          getErrorResponseMessage(error) || "Impossible de restaurer",
         color: "error",
       });
       return false;
@@ -350,7 +371,9 @@ export const useAttributes = () => {
     }
   }
 
-  async function reorderAttributes(orders: Array<{ id: string; sort_order: number }>): Promise<boolean> {
+  async function reorderAttributes(
+    orders: Array<{ id: string; sort_order: number }>
+  ): Promise<boolean> {
     try {
       const response = await client<ApiResponse<null>>(
         "/api/v1/admin/attributes/reorder",
@@ -369,10 +392,11 @@ export const useAttributes = () => {
       }
 
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.add({
         title: "Erreur",
-        description: error.response?._data?.message || "Impossible de réorganiser",
+        description:
+          getErrorResponseMessage(error) || "Impossible de réorganiser",
         color: "error",
       });
       return false;
@@ -383,12 +407,12 @@ export const useAttributes = () => {
   // GESTION DES ERREURS
   // ============================================================================
 
-  function handleValidationErrors(error: any): void {
-    const errors = error.response?._data?.errors;
+  function handleValidationErrors(error: unknown): void {
+    const errors = getErrorResponseErrors(error);
 
     if (errors && typeof errors === "object") {
       const errorMessages = Object.entries(errors)
-        .map(([field, messages]) => {
+        .map(([messages]) => {
           const messageArray = Array.isArray(messages) ? messages : [messages];
           return messageArray.join("\n");
         })
@@ -404,7 +428,8 @@ export const useAttributes = () => {
     } else {
       toast.add({
         title: "Erreur",
-        description: error.response?._data?.message || "Une erreur est survenue",
+        description:
+          getErrorResponseMessage(error) || "Une erreur est survenue",
         color: "error",
         icon: "i-lucide-alert-circle",
       });
@@ -434,7 +459,7 @@ export const useAttributes = () => {
   }
 
   function setType(type: string): void {
-    filters.value.type = type === "all" ? undefined : (type as any);
+    filters.value.type = type === "all" ? undefined : (type as AttributeType);
     pagination.value.pageIndex = 0;
     fetchAttributes();
   }
@@ -476,6 +501,42 @@ export const useAttributes = () => {
     lastError.value = null;
     loadingState.value = "idle";
     resetFilters();
+  }
+
+  // Fonctions utilitaires pour gérer les erreurs
+  function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    } else if (typeof error === "string") {
+      return error;
+    }
+    return "Une erreur inconnue est survenue";
+  }
+
+  function getErrorResponseMessage(error: unknown): string | undefined {
+    if (error && typeof error === "object" && "response" in error) {
+      const response = (
+        error as { response?: { _data?: { message?: string } } }
+      ).response;
+      if (response?._data?.message) {
+        return response._data.message;
+      }
+    }
+    return undefined;
+  }
+
+  function getErrorResponseErrors(
+    error: unknown
+  ): Record<string, string[]> | undefined {
+    if (error && typeof error === "object" && "response" in error) {
+      const response = (
+        error as {
+          response?: { _data?: { errors?: Record<string, string[]> } };
+        }
+      ).response;
+      return response?._data?.errors;
+    }
+    return undefined;
   }
 
   // ============================================================================

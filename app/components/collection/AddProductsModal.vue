@@ -204,7 +204,7 @@ watch(isOpen, (value) => {
                 :src="product.thumbnail_url"
                 :alt="product.name"
                 class="w-full h-full object-cover"
-              />
+              >
               <div v-else class="w-full h-full flex items-center justify-center">
                 <UIcon name="i-lucide-image" class="w-6 h-6 text-gray-400" />
               </div>

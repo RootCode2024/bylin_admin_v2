@@ -136,33 +136,61 @@ onBeforeUnmount(() => cleanupObjectUrls())
 </script>
 
 <template>
-  <UModal v-model:open="isOpen" title="Nouvelle collection" description="Créer une nouvelle collection de produits"
-    :ui="{ content: 'min-w-[60%]' }" @close="handleModalClose">
+  <UModal
+v-model:open="isOpen"
+title="Nouvelle collection"
+description="Créer une nouvelle collection de produits"
+    :ui="{ content: 'min-w-[60%]' }"
+@close="handleModalClose">
     <template #body>
-      <UForm :schema="schema" :state="state" class="p-4 space-y-4" @submit="onSubmit">
+      <UForm
+:schema="schema"
+:state="state"
+class="p-4 space-y-4"
+@submit="onSubmit">
         <!-- Nom -->
         <UFormField label="Nom de la collection" name="name" required>
-          <UInput v-model="state.name" placeholder="Ex: Collection Été 2024" class="w-full" :disabled="isLoading" />
+          <UInput
+v-model="state.name"
+placeholder="Ex: Collection Été 2024"
+class="w-full"
+:disabled="isLoading" />
         </UFormField>
 
         <!-- Description -->
         <UFormField label="Description" name="description">
-          <UTextarea v-model="state.description" :rows="4" placeholder="Décrivez cette collection..." class="w-full"
+          <UTextarea
+v-model="state.description"
+:rows="4"
+placeholder="Décrivez cette collection..."
+class="w-full"
             :disabled="isLoading" />
         </UFormField>
 
         <!-- Image -->
         <UFormField label="Image de la collection" name="image">
-          <UFileUpload v-slot="{ open: openFileDialog, removeFile }" v-model="state.image"
+          <UFileUpload
+v-slot="{ open: openFileDialog, removeFile }"
+v-model="state.image"
             :accept="DEFAULT_IMAGE_CONFIG.acceptedTypes.join(',')">
             <div class="flex items-center gap-3">
               <UAvatar size="lg" :src="state.image ? createPreviewUrl(state.image) : undefined" icon="i-lucide-image" />
-              <UButton :label="state.image ? 'Modifier l\'image' : 'Télécharger'" color="neutral" variant="outline"
-                icon="i-lucide-upload" @click="openFileDialog()" :disabled="isLoading" />
+              <UButton
+:label="state.image ? 'Modifier l\'image' : 'Télécharger'"
+color="neutral"
+variant="outline"
+                icon="i-lucide-upload"
+:disabled="isLoading"
+@click="openFileDialog()" />
             </div>
             <div v-if="state.image" class="mt-2">
               <p class="text-xs">{{ state.image.name }}</p>
-              <UButton label="Supprimer l'image" color="error" variant="link" size="xs" class="p-0"
+              <UButton
+label="Supprimer l'image"
+color="error"
+variant="link"
+size="xs"
+class="p-0"
                 @click="() => { removeFile(); removeImage() }" />
             </div>
           </UFileUpload>
@@ -171,7 +199,11 @@ onBeforeUnmount(() => cleanupObjectUrls())
         <!-- Options -->
         <div class="border-t pt-4 space-y-3">
           <UFormField label="Ordre d'affichage" name="display_order">
-            <UInput v-model.number="state.display_order" type="number" min="0" class="w-full" />
+            <UInput
+v-model.number="state.display_order"
+type="number"
+min="0"
+class="w-full" />
           </UFormField>
 
           <USwitch v-model="state.is_active" label="Collection active" />
@@ -189,8 +221,11 @@ onBeforeUnmount(() => cleanupObjectUrls())
               </UFormField>
 
               <UFormField label="Description SEO" name="meta_description">
-                <UTextarea v-model="state.meta_description" :rows="3"
-                  placeholder="Description pour les moteurs de recherche" class="w-full" />
+                <UTextarea
+v-model="state.meta_description"
+:rows="3"
+                  placeholder="Description pour les moteurs de recherche"
+class="w-full" />
                 <template #hint>
                   <span class="text-xs">{{ state.meta_description?.length || 0 }}/500 caractères</span>
                 </template>
@@ -201,8 +236,16 @@ onBeforeUnmount(() => cleanupObjectUrls())
 
         <!-- Actions -->
         <div class="flex justify-end gap-3 pt-4 border-t">
-          <UButton label="Annuler" color="neutral" variant="ghost" @click="handleClose" />
-          <UButton label="Créer la collection" color="primary" type="submit" :loading="isLoading"
+          <UButton
+label="Annuler"
+color="neutral"
+variant="ghost"
+@click="handleClose" />
+          <UButton
+label="Créer la collection"
+color="primary"
+type="submit"
+:loading="isLoading"
             icon="i-lucide-check" />
         </div>
       </UForm>

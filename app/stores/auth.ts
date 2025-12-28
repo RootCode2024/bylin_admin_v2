@@ -1,7 +1,5 @@
-// stores/auth.ts
 import { defineStore } from 'pinia'
 
-// Interface utilisateur (Adapter selon la réponse de ton API /me)
 interface User {
   id: number
   name: string
@@ -23,9 +21,9 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(credentials: Record<string, any>) {
     loading.value = true
     try {
-      // Le module gère la requête et la redirection (config.redirect.onLogin)
       await sanctumLogin(credentials)
     } catch (error) {
+      console.error('Erreur lors de la connexion', error)
       throw error
     } finally {
       loading.value = false
@@ -35,7 +33,6 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     loading.value = true
     try {
-      // Le module gère la requête et la redirection (config.redirect.onLogout)
       await sanctumLogout()
     } catch (error) {
       console.error('Erreur lors de la déconnexion', error)

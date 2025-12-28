@@ -302,35 +302,57 @@ onMounted(() => {
       <!-- Toolbar -->
       <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-2 w-full lg:w-auto">
-          <UInput v-model="localSearch" icon="i-lucide-search" placeholder="Rechercher une marque..."
-            class="w-full sm:w-72" :ui="{ trailing: 'pointer-events-auto' }">
-            <template #trailing v-if="localSearch">
-              <UButton color="neutral" variant="link" icon="i-lucide-x" :padded="false" @click="localSearch = ''" />
+          <UInput
+v-model="localSearch"
+icon="i-lucide-search"
+placeholder="Rechercher une marque..."
+            class="w-full sm:w-72"
+:ui="{ trailing: 'pointer-events-auto' }">
+            <template v-if="localSearch" #trailing>
+              <UButton
+color="neutral"
+variant="link"
+icon="i-lucide-x"
+:padded="false"
+@click="localSearch = ''" />
             </template>
           </UInput>
 
-          <USelectMenu v-model="localStatus"
-            :items="Object.entries(statusLabels).map(([v, l]) => ({ label: l, value: v }))" value-key="value"
-            label-key="label" class="w-40" />
+          <USelectMenu
+v-model="localStatus"
+            :items="Object.entries(statusLabels).map(([v, l]) => ({ label: l, value: v }))"
+value-key="value"
+            label-key="label"
+class="w-40" />
         </div>
 
         <div class="flex items-center gap-2">
           <!-- Actions de masse -->
-          <Transition enter-active-class="transition duration-200" enter-from-class="opacity-0 translate-y-1"
-            leave-active-class="transition duration-150" leave-to-class="opacity-0 translate-y-1">
+          <Transition
+enter-active-class="transition duration-200"
+enter-from-class="opacity-0 translate-y-1"
+            leave-active-class="transition duration-150"
+leave-to-class="opacity-0 translate-y-1">
             <div v-if="selectedIds.length > 0" class="flex items-center gap-2">
-              <UButton v-if="!selectedBrandsHaveDeleted" color="error" variant="soft" icon="i-lucide-trash-2"
-                :label="`Supprimer (${selectedIds.length})`" @click="openDeleteModal(selectedIds)" />
+              <UButton
+v-if="!selectedBrandsHaveDeleted"
+color="error"
+variant="soft"
+icon="i-lucide-trash-2"
+                :label="`Supprimer (${selectedIds.length})`"
+@click="openDeleteModal(selectedIds)" />
             </div>
           </Transition>
 
           <!-- Menu Colonnes -->
-          <UDropdownMenu :items="visibleColumns.map(col => ({
+          <UDropdownMenu
+:items="visibleColumns.map(col => ({
             label: upperFirst(col.id === 'name' ? 'Marque' : col.id === 'is_active' ? 'Statut' : col.id === 'products_count' ? 'Produits' : col.id),
             type: 'checkbox',
             checked: col.getIsVisible(),
             onUpdateChecked: (v: boolean) => col.toggleVisibility(!!v)
-          }))" :content="{ align: 'end' }">
+          }))"
+:content="{ align: 'end' }">
             <UButton icon="i-lucide-sliders-horizontal" color="neutral" variant="outline" />
           </UDropdownMenu>
         </div>
@@ -339,8 +361,13 @@ onMounted(() => {
       <!-- Tableau -->
       <div
         class="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-900 flex-1 flex flex-col">
-        <UTable ref="table" v-model:row-selection="rowSelection" :data="brands as any" :columns="columns"
-          :loading="loading" class="flex-1">
+        <UTable
+ref="table"
+v-model:row-selection="rowSelection"
+:data="brands as any"
+:columns="columns"
+          :loading="loading"
+class="flex-1">
           <!-- Loading State -->
           <template #loading-state>
             <div class="p-4 space-y-4">
@@ -363,10 +390,14 @@ onMounted(() => {
                 <UIcon name="i-lucide-tag" class="w-8 h-8 text-gray-400" />
               </div>
               <p class="text-base font-medium text-gray-900 dark:text-white">Aucune marque trouvée</p>
-              <p class="text-sm text-gray-500 mt-1" v-if="localSearch || localStatus !== 'all'">
+              <p v-if="localSearch || localStatus !== 'all'" class="text-sm text-gray-500 mt-1">
                 Essayez de modifier vos filtres.
               </p>
-              <UButton v-if="localSearch || localStatus !== 'all'" label="Réinitialiser" variant="link" class="mt-2"
+              <UButton
+v-if="localSearch || localStatus !== 'all'"
+label="Réinitialiser"
+variant="link"
+class="mt-2"
                 @click="{ localSearch = ''; localStatus = 'all' }" />
             </div>
           </template>

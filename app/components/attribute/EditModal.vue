@@ -144,10 +144,18 @@ async function onSubmit(event: FormSubmitEvent<AttributeFormSchema>) {
 </script>
 
 <template>
-  <UModal v-model:open="open" title="Modifier l'attribut"
-    :description="`Modification de l'attribut ${attribute?.name || ''}`" :ui="{ content: 'min-w-[60%]' }">
+  <UModal
+v-model:open="open"
+title="Modifier l'attribut"
+    :description="`Modification de l'attribut ${attribute?.name || ''}`"
+:ui="{ content: 'min-w-[60%]' }">
     <template #body>
-      <UForm v-if="attribute" :schema="schema" :state="state" class="p-4 space-y-4" @submit="onSubmit">
+      <UForm
+v-if="attribute"
+:schema="schema"
+:state="state"
+class="p-4 space-y-4"
+@submit="onSubmit">
         <div class="grid grid-cols-2 gap-4">
           <UFormField label="Nom de l'attribut" name="name" required>
             <UInput v-model="state.name" :disabled="loading" />
@@ -163,9 +171,16 @@ async function onSubmit(event: FormSubmitEvent<AttributeFormSchema>) {
 
         <div class="grid grid-cols-2 gap-4">
           <UFormField label="Type d'attribut" name="type" required>
-            <USelectMenu v-model="state.type" :items="typeOptions" value-key="value" label-key="label" class="w-full">
+            <USelectMenu
+v-model="state.type"
+:items="typeOptions"
+value-key="value"
+label-key="label"
+class="w-full">
               <template #leading>
-                <UIcon v-if="state.type" :name="typeOptions.find(t => t.value === state.type)?.icon || 'i-lucide-tag'"
+                <UIcon
+v-if="state.type"
+:name="typeOptions.find(t => t.value === state.type)?.icon || 'i-lucide-tag'"
                   class="size-4" />
               </template>
             </USelectMenu>
@@ -207,26 +222,49 @@ async function onSubmit(event: FormSubmitEvent<AttributeFormSchema>) {
                   </UPopover>
                 </div>
                 <div :class="isColorType ? 'col-span-1' : 'col-span-4'">
-                  <UButton icon="i-lucide-plus" color="primary" block @click="addValue" :disabled="!newValue.trim()" />
+                  <UButton
+icon="i-lucide-plus"
+color="primary"
+block
+:disabled="!newValue.trim()"
+@click="addValue" />
                 </div>
               </div>
             </div>
 
             <div v-if="values.length > 0" class="mt-3 space-y-2">
-              <div v-for="(value, index) in values" :key="value.id || index"
+              <div
+v-for="(value, index) in values"
+:key="value.id || index"
                 class="flex items-center gap-2 p-2 bg-white dark:bg-gray-900 border rounded-lg">
-                <span v-if="isColorType && value.color_code" :style="{ backgroundColor: value.color_code }"
+                <span
+v-if="isColorType && value.color_code"
+:style="{ backgroundColor: value.color_code }"
                   class="size-4 rounded-full border" />
                 <div class="flex-1">
                   <p class="text-sm font-medium">{{ value.label }}</p>
                   <p class="text-xs text-gray-500">{{ value.value }}</p>
                 </div>
                 <div class="flex items-center gap-1">
-                  <UButton icon="i-lucide-arrow-up" color="neutral" variant="ghost" size="xs" :disabled="index === 0"
+                  <UButton
+icon="i-lucide-arrow-up"
+color="neutral"
+variant="ghost"
+size="xs"
+:disabled="index === 0"
                     @click="moveValue(index, 'up')" />
-                  <UButton icon="i-lucide-arrow-down" color="neutral" variant="ghost" size="xs"
-                    :disabled="index === values.length - 1" @click="moveValue(index, 'down')" />
-                  <UButton icon="i-lucide-trash-2" color="error" variant="ghost" size="xs"
+                  <UButton
+icon="i-lucide-arrow-down"
+color="neutral"
+variant="ghost"
+size="xs"
+                    :disabled="index === values.length - 1"
+@click="moveValue(index, 'down')" />
+                  <UButton
+icon="i-lucide-trash-2"
+color="error"
+variant="ghost"
+size="xs"
                     @click="removeValue(index)" />
                 </div>
               </div>
@@ -235,8 +273,17 @@ async function onSubmit(event: FormSubmitEvent<AttributeFormSchema>) {
         </div>
 
         <div class="flex justify-end gap-3 pt-4 border-t">
-          <UButton label="Annuler" color="neutral" variant="ghost" @click="open = false" />
-          <UButton label="Mettre à jour" color="primary" type="submit" :loading="loading" icon="i-lucide-check" />
+          <UButton
+label="Annuler"
+color="neutral"
+variant="ghost"
+@click="open = false" />
+          <UButton
+label="Mettre à jour"
+color="primary"
+type="submit"
+:loading="loading"
+icon="i-lucide-check" />
         </div>
       </UForm>
     </template>

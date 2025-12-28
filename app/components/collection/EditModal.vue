@@ -226,12 +226,22 @@ async function onSubmit(event: FormSubmitEvent<CollectionFormSchema>): Promise<v
       emit('updated')
       cleanupAllPreviews()
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erreur lors de la mise à jour:', error)
+
+    let errorMessage = 'Impossible de mettre à jour la collection'
+
+    if (error instanceof Error) {
+      errorMessage = error.message
+    } else if (typeof error === 'string') {
+      errorMessage = error
+    } else if (error && typeof error === 'object' && 'message' in error) {
+      errorMessage = String((error as { message: unknown }).message)
+    }
 
     toast.add({
       title: 'Erreur',
-      description: error.message || 'Impossible de mettre à jour la collection',
+      description: errorMessage,
       color: 'error',
       icon: 'i-lucide-alert-triangle'
     })
@@ -274,7 +284,7 @@ onBeforeUnmount(() => {
     @after:leave="handleModalClose"
   >
     <!-- Contenu du modal -->
-    <template #body="{ close }">
+    <template #body>
       <UForm
         ref="formRef"
         :schema="schema"

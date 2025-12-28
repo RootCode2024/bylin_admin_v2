@@ -7,19 +7,17 @@ defineProps<{
 
 const colorMode = useColorMode()
 const appConfig = useAppConfig()
-const auth = useAuthStore() // Utilisation du store
-
-onMounted( async () => {
-  console.log('utilisateur connecté ::: ',auth.user)
-})
+const auth = useAuthStore()
 
 const colors = ['red', 'orange', 'amber', 'yellow', 'lime', 'green', 'emerald', 'teal', 'cyan', 'sky', 'blue', 'indigo', 'violet', 'purple', 'fuchsia', 'pink', 'rose']
 const neutrals = ['slate', 'gray', 'zinc', 'neutral', 'stone']
 
-// Calcul dynamique de l'utilisateur connecté
-// Calcul dynamique de l'utilisateur connecté
+// Définition du type pour l'item avec chip
+interface DropdownMenuItemWithChip extends DropdownMenuItem {
+  chip?: string
+}
+
 const user = computed(() => {
-  // On récupère l'objet réel (soit c'est un objet, soit c'est le 1er élément d'un tableau)
   const realUser = Array.isArray(auth.user) ? auth.user[0] : auth.user
 
   return {
@@ -32,10 +30,8 @@ const user = computed(() => {
   }
 })
 
-// Fonction de déconnexion via le store
 const handleLogout = async () => {
   await auth.logout()
-  // La redirection est gérée par nuxt.config.ts (redirect.onLogout)
 }
 
 const items = computed<DropdownMenuItem[][]>(() => ([
@@ -104,40 +100,37 @@ const items = computed<DropdownMenuItem[][]>(() => ([
   [{
     label: 'Se déconnecter',
     icon: 'i-lucide-log-out',
-    onSelect: handleLogout // Appel propre au store
+    onSelect: handleLogout
   }]
 ]))
 </script>
 
 <template>
   <UDropdownMenu
-    :items="items"
-    :content="{ align: 'center', collisionPadding: 12 }"
-    :ui="{ content: collapsed ? 'w-48' : 'w-(--reka-dropdown-menu-trigger-width)' }"
-  >
+:items="items"
+:content="{ align: 'center', collisionPadding: 12 }"
+    :ui="{ content: collapsed ? 'w-48' : 'w-(--reka-dropdown-menu-trigger-width)' }">
     <UButton
-      v-bind="{
-        ...user,
-        label: collapsed ? undefined : user.name, // .value non nécessaire dans le template direct (sauf si déstructuré)
-        trailingIcon: collapsed ? undefined : 'i-lucide-chevrons-up-down'
-      }"
-      color="neutral"
-      variant="ghost"
-      block
-      :square="collapsed"
-      class="data-[state=open]:bg-elevated"
-      :ui="{ trailingIcon: 'text-dimmed' }"
-    />
+v-bind="{
+      ...user,
+      label: collapsed ? undefined : user.name,
+      trailingIcon: collapsed ? undefined : 'i-lucide-chevrons-up-down'
+    }"
+color="neutral"
+variant="ghost"
+block
+:square="collapsed"
+class="data-[state=open]:bg-elevated"
+      :ui="{ trailingIcon: 'text-dimmed' }" />
 
     <template #chip-leading="{ item }">
       <div class="inline-flex items-center justify-center shrink-0 size-5">
         <span
-          class="rounded-full ring ring-bg bg-(--chip-light) dark:bg-(--chip-dark) size-2"
-          :style="{
-            '--chip-light': `var(--color-${(item as any).chip}-500)`,
-            '--chip-dark': `var(--color-${(item as any).chip}-400)`
-          }"
-        />
+class="rounded-full ring ring-bg bg-(--chip-light) dark:bg-(--chip-dark) size-2"
+:style="{
+          '--chip-light': `var(--color-${(item as DropdownMenuItemWithChip).chip}-500)`,
+          '--chip-dark': `var(--color-${(item as DropdownMenuItemWithChip).chip}-400)`
+        }" />
       </div>
     </template>
   </UDropdownMenu>

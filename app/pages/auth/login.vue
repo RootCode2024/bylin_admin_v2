@@ -4,7 +4,6 @@ const toast = useToast()
 
 definePageMeta({
   layout: 'auth',
-  // middleware: 'sanctum:guest' // Empêche les utilisateurs connectés de voir cette page
 })
 
 const showPassword = ref(false)
@@ -15,7 +14,6 @@ const form = reactive({
 })
 
 const handleLogin = async () => {
-  // 1. Validation basique
   if (!form.email || !form.password) {
     toast.add({
       title: 'Validation',
@@ -27,10 +25,8 @@ const handleLogin = async () => {
   }
 
   try {
-    // 2. Appel au store
     await auth.login(form)
 
-    // 3. Succès
     toast.add({
       title: 'Connexion réussie',
       description: 'Bienvenue sur Bylin.',
@@ -38,13 +34,10 @@ const handleLogin = async () => {
       icon: 'i-lucide-check-circle'
     })
 
-    // La redirection est gérée par le config sanctum (onLogin),
-    // ou forcez-la ici si besoin:
     await navigateTo('/')
 
-  } catch (err: any) {
-    // 4. Gestion d'erreur propre
-    const message = err.response?._data?.message || 'Identifiants incorrects ou erreur serveur.'
+  } catch (error: unknown) {
+    const message = getErrorMessage(error)
 
     toast.add({
       title: 'Erreur',
@@ -62,7 +55,7 @@ const handleLogin = async () => {
     <!-- Header Mobile & Titre -->
     <div class="text-center lg:text-left">
       <div class="lg:hidden flex justify-center mb-6">
-        <div class="w-12 h-12 rounded-xl bg-[#0066bf] flex items-center justify-center text-white shadow-lg">
+        <div class="w-12 h-12 rounded-xl bg-primary-500 flex items-center justify-center text-white shadow-lg">
           <UIcon name="i-lucide-box" class="w-7 h-7" />
         </div>
       </div>
@@ -74,7 +67,7 @@ const handleLogin = async () => {
       </p>
     </div>
 
-    <form @submit.prevent="handleLogin" class="space-y-5">
+    <form class="space-y-5" @submit.prevent="handleLogin">
 
       <!-- Email -->
       <UFormField label="Email" name="email">
@@ -98,11 +91,10 @@ const handleLogin = async () => {
           placeholder="••••••••"
           size="lg"
           class="w-full"
-          :ui="{ icon: { trailing: { pointer: 'pointer-events-auto' } } }"
         >
           <template #trailing>
             <UButton
-              color="gray"
+              color="neutral"
               variant="ghost"
               :icon="showPassword ? 'i-lucide-eye-off' : 'i-lucide-eye'"
               :padded="false"
@@ -116,7 +108,7 @@ const handleLogin = async () => {
       <div class="flex items-center justify-end">
         <NuxtLink
           to="/auth/forgot-password"
-          class="text-sm font-medium text-[#005299] hover:text-[#0066bf] dark:text-[#36a2ff] transition-colors"
+          class="text-sm font-medium text-primary-500 hover:text-primary-600 dark:text-primary-400 transition-colors"
         >
           Mot de passe oublié ?
         </NuxtLink>
@@ -128,7 +120,7 @@ const handleLogin = async () => {
         block
         size="lg"
         :loading="auth.loading"
-        class="bg-[#0066bf] hover:bg-[#005299] text-white transition-all duration-200"
+        class="bg-primary-500 hover:bg-primary-600 text-white transition-all duration-200"
       >
         Se connecter
       </UButton>

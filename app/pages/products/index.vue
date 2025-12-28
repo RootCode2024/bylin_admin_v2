@@ -384,21 +384,35 @@ onMounted(async () => {
     <template #header>
       <UDashboardNavbar title="Produits" :badge="state.pagination?.total || 0">
         <template #right>
-          <UButton label="Nouveau produit" icon="i-lucide-plus" color="primary" to="/products/create" />
+          <UButton
+label="Nouveau produit"
+icon="i-lucide-plus"
+color="primary"
+to="/products/create" />
         </template>
       </UDashboardNavbar>
     </template>
 
     <template #body>
       <!-- Badge filtre collection -->
-      <UAlert v-if="filteredCollection" color="primary" variant="subtle" icon="i-lucide-filter" class="mb-4">
+      <UAlert
+v-if="filteredCollection"
+color="primary"
+variant="subtle"
+icon="i-lucide-filter"
+class="mb-4">
         <template #title>
           <div class="flex items-center justify-between">
             <span class="text-sm">
               Filtré par collection :
               <span class="font-semibold">{{ filteredCollection.name }}</span>
             </span>
-            <UButton icon="i-lucide-x" color="primary" variant="ghost" size="xs" @click="clearCollectionFilter" />
+            <UButton
+icon="i-lucide-x"
+color="primary"
+variant="ghost"
+size="xs"
+@click="clearCollectionFilter" />
           </div>
         </template>
       </UAlert>
@@ -406,44 +420,77 @@ onMounted(async () => {
       <!-- Toolbar -->
       <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-2 w-full lg:w-auto flex-wrap">
-          <UInput v-model="localSearch" icon="i-lucide-search" placeholder="Rechercher (Nom, SKU, Tags)..."
-            class="w-full sm:w-72" :ui="{ trailing: 'pointer-events-auto' }">
-            <template #trailing v-if="localSearch">
-              <UButton color="neutral" variant="link" icon="i-lucide-x" :padded="false" @click="localSearch = ''" />
+          <UInput
+v-model="localSearch"
+icon="i-lucide-search"
+placeholder="Rechercher (Nom, SKU, Tags)..."
+            class="w-full sm:w-72"
+:ui="{ trailing: 'pointer-events-auto' }">
+            <template v-if="localSearch" #trailing>
+              <UButton
+color="neutral"
+variant="link"
+icon="i-lucide-x"
+:padded="false"
+@click="localSearch = ''" />
             </template>
           </UInput>
 
-          <USelectMenu v-model="localStatus" :items="Object.entries(statusLabels).map(([v, l]) => ({
+          <USelectMenu
+v-model="localStatus"
+:items="Object.entries(statusLabels).map(([v, l]) => ({
             label: l,
             value: v
-          }))" value-key="value" label-key="label" class="w-40" />
+          }))"
+value-key="value"
+label-key="label"
+class="w-40" />
 
-          <USelectMenu v-model="localStock" :items="Object.entries(stockLabels).map(([v, l]) => ({
+          <USelectMenu
+v-model="localStock"
+:items="Object.entries(stockLabels).map(([v, l]) => ({
             label: l,
             value: v
-          }))" value-key="value" label-key="label" class="w-40" />
+          }))"
+value-key="value"
+label-key="label"
+class="w-40" />
 
-          <UButton v-if="localSearch || localStatus !== 'all' || localStock !== 'all' || filteredCollection"
-            icon="i-lucide-filter-x" color="gray" variant="ghost" label="Reset" @click="handleReset" />
+          <UButton
+v-if="localSearch || localStatus !== 'all' || localStock !== 'all' || filteredCollection"
+            icon="i-lucide-filter-x"
+color="gray"
+variant="ghost"
+label="Reset"
+@click="handleReset" />
         </div>
 
         <div class="flex items-center gap-2">
           <!-- Actions de masse -->
-          <Transition enter-active-class="transition duration-200" enter-from-class="opacity-0 translate-y-1"
-            leave-active-class="transition duration-150" leave-to-class="opacity-0 translate-y-1">
+          <Transition
+enter-active-class="transition duration-200"
+enter-from-class="opacity-0 translate-y-1"
+            leave-active-class="transition duration-150"
+leave-to-class="opacity-0 translate-y-1">
             <div v-if="selectedIds.length > 0" class="flex items-center gap-2">
-              <UButton color="error" variant="soft" icon="i-lucide-trash-2" :label="`Supprimer (${selectedIds.length})`"
+              <UButton
+color="error"
+variant="soft"
+icon="i-lucide-trash-2"
+:label="`Supprimer (${selectedIds.length})`"
                 @click="openDeleteModal(selectedIds)" />
             </div>
           </Transition>
 
           <!-- Menu Colonnes -->
-          <UDropdownMenu :items="visibleColumns.map(col => ({
+          <UDropdownMenu
+:items="visibleColumns.map(col => ({
             label: upperFirst(col.id === 'name' ? 'Nom' : col.id === 'flags' ? 'Attributs' : col.id),
             type: 'checkbox',
             checked: col.getIsVisible(),
             onUpdateChecked: (v: boolean) => col.toggleVisibility(!!v)
-          }))" :content="{ align: 'end' }">
+          }))"
+:content="{ align: 'end' }">
             <UButton icon="i-lucide-sliders-horizontal" color="neutral" variant="outline" />
           </UDropdownMenu>
         </div>
@@ -452,8 +499,13 @@ onMounted(async () => {
       <!-- Tableau -->
       <div
         class="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-900 flex-1 flex flex-col">
-        <UTable ref="table" v-model:row-selection="rowSelection" :data="tableData" :columns="columns"
-          :loading="isLoading" class="flex-1">
+        <UTable
+ref="table"
+v-model:row-selection="rowSelection"
+:data="tableData"
+:columns="columns"
+          :loading="isLoading"
+class="flex-1">
           <!-- Loading State -->
           <template #loading-state>
             <div class="p-4 space-y-4">
@@ -482,20 +534,28 @@ onMounted(async () => {
               <p v-if="localSearch || localStatus !== 'all' || filteredCollection" class="text-sm text-gray-500 mt-1">
                 Essayez de modifier vos critères de recherche.
               </p>
-              <UButton v-else label="Créer un produit" color="primary" class="mt-4" to="/products/create" />
+              <UButton
+v-else
+label="Créer un produit"
+color="primary"
+class="mt-4"
+to="/products/create" />
             </div>
           </template>
         </UTable>
       </div>
 
       <!-- Pagination -->
-      <div v-if="paginationTotal > 0"
+      <div
+v-if="paginationTotal > 0"
         class="flex items-center justify-between mt-4 border-t border-gray-200 dark:border-gray-800 pt-4">
         <span class="text-sm text-gray-500">
           Total : <span class="font-medium text-gray-900 dark:text-white">{{ state.pagination?.total }}</span>
           produit(s)
         </span>
-        <UPagination v-model:page="currentPage" :total="state.pagination?.total"
+        <UPagination
+v-model:page="currentPage"
+:total="state.pagination?.total"
           :items-per-page="state.pagination?.per_page" />
       </div>
     </template>

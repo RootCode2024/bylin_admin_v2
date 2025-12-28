@@ -47,7 +47,11 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     <UButton label="Nouveau client" icon="i-lucide-plus" color="primary" />
 
     <template #content>
-      <UForm :schema="schema" :state="state" class="p-4 space-y-4" @submit="onSubmit">
+      <UForm
+:schema="schema"
+:state="state"
+class="p-4 space-y-4"
+@submit="onSubmit">
         <div class="grid grid-cols-2 gap-4">
           <UFormField label="Prénom" name="first_name" required>
             <UInput v-model="state.first_name" placeholder="Jean" autofocus />
@@ -59,7 +63,11 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
         </div>
 
         <UFormField label="Adresse email" name="email" required>
-          <UInput v-model="state.email" type="email" placeholder="jean.dupont@example.com" icon="i-lucide-mail" />
+          <UInput
+v-model="state.email"
+type="email"
+placeholder="jean.dupont@example.com"
+icon="i-lucide-mail" />
         </UFormField>
 
         <UFormField label="Téléphone" name="phone">
@@ -72,30 +80,50 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
           </UFormField>
 
           <UFormField label="Genre" name="gender">
-            <USelectMenu v-model="state.gender" :items="[
+            <USelectMenu
+v-model="state.gender"
+:items="[
               { label: 'Masculin', value: 'male' },
               { label: 'Féminin', value: 'female' },
               { label: 'Autre', value: 'other' }
-            ]" value-key="value" label-key="label" placeholder="Sélectionner" />
+            ]"
+value-key="value"
+label-key="label"
+placeholder="Sélectionner" />
           </UFormField>
         </div>
 
         <UFormField label="Statut initial" name="status">
-          <USelectMenu v-model="state.status" :items="[
+          <USelectMenu
+v-model="state.status"
+:items="[
             { label: 'Actif', value: 'active' },
             { label: 'Inactif', value: 'inactive' },
             { label: 'Suspendu', value: 'suspended' }
-          ]" value-key="value" label-key="label" />
+          ]"
+value-key="value"
+label-key="label" />
         </UFormField>
 
         <UFormField name="send_credentials">
-          <UCheckbox v-model="state.send_credentials" label="Envoyer les identifiants par email"
+          <UCheckbox
+v-model="state.send_credentials"
+label="Envoyer les identifiants par email"
             help="Un email sera envoyé avec les informations de connexion" />
         </UFormField>
 
         <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
-          <UButton label="Annuler" color="neutral" variant="ghost" @click="open = false" :disabled="loading" />
-          <UButton label="Créer le client" color="primary" type="submit" :loading="loading" />
+          <UButton
+label="Annuler"
+color="neutral"
+variant="ghost"
+:disabled="loading"
+@click="open = false" />
+          <UButton
+label="Créer le client"
+color="primary"
+type="submit"
+:loading="loading" />
         </div>
       </UForm>
     </template>

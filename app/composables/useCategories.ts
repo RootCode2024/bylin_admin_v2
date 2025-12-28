@@ -8,12 +8,6 @@ import type {
   BreadcrumbItem,
 } from "~/types/category";
 
-/**
- * Composable de gestion des catégories
- *
- * Fournit toutes les fonctionnalités CRUD et de gestion des catégories
- * avec état partagé, pagination, filtres et gestion d'erreurs
- */
 export const useCategories = () => {
   const client = useSanctumClient();
   const toast = useToast();
@@ -147,7 +141,7 @@ export const useCategories = () => {
     lastError.value = null;
 
     try {
-      const params: Record<string, any> = {
+      const params: Record<string, string | number | boolean | undefined> = {
         page: pagination.value.pageIndex + 1,
         per_page: pagination.value.pageSize,
         search: filters.value.search || undefined,
@@ -200,17 +194,17 @@ export const useCategories = () => {
       } else {
         throw new Error(response.message || "Erreur lors du chargement");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       loadingState.value = "error";
-      lastError.value = error.message || "Erreur inconnue";
+      lastError.value = getErrorMessage(error);
       categories.value = [];
       pagination.value.total = 0;
 
+      const errorMessage = getApiErrorMessage(error);
+
       toast.add({
         title: "Erreur de chargement",
-        description:
-          error.response?._data?.message ||
-          "Impossible de charger les catégories",
+        description: errorMessage || "Impossible de charger les catégories",
         color: "error",
         icon: "i-lucide-alert-circle",
       });
@@ -234,12 +228,13 @@ export const useCategories = () => {
       if (response.success) {
         categoryTree.value = response.data;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error);
+
       toast.add({
         title: "Erreur",
         description:
-          error.response?._data?.message ||
-          "Impossible de charger l'arbre des catégories",
+          errorMessage || "Impossible de charger l'arbre des catégories",
         color: "error",
       });
     } finally {
@@ -265,12 +260,12 @@ export const useCategories = () => {
       }
 
       return null;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error);
+
       toast.add({
         title: "Erreur",
-        description:
-          error.response?._data?.message ||
-          "Impossible de charger la catégorie",
+        description: errorMessage || "Impossible de charger la catégorie",
         color: "error",
       });
       return null;
@@ -283,7 +278,7 @@ export const useCategories = () => {
    * Crée une nouvelle catégorie
    */
   async function createCategory(
-    data: FormData | Record<string, any>
+    data: FormData | Record<string, unknown>
   ): Promise<boolean> {
     loading.value = true;
     lastError.value = null;
@@ -313,8 +308,8 @@ export const useCategories = () => {
       }
 
       return false;
-    } catch (error: any) {
-      lastError.value = error.message;
+    } catch (error: unknown) {
+      lastError.value = getErrorMessage(error);
       handleValidationErrors(error);
       return false;
     } finally {
@@ -327,7 +322,7 @@ export const useCategories = () => {
    */
   async function updateCategory(
     id: string,
-    data: FormData | Record<string, any>
+    data: FormData | Record<string, unknown>
   ): Promise<boolean> {
     loading.value = true;
     lastError.value = null;
@@ -359,8 +354,8 @@ export const useCategories = () => {
       }
 
       return false;
-    } catch (error: any) {
-      lastError.value = error.message;
+    } catch (error: unknown) {
+      lastError.value = getErrorMessage(error);
       handleValidationErrors(error);
       return false;
     } finally {
@@ -414,11 +409,12 @@ export const useCategories = () => {
       }
 
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error);
+
       toast.add({
         title: "Erreur de suppression",
-        description:
-          error.response?._data?.message || "Impossible de supprimer",
+        description: errorMessage || "Impossible de supprimer",
         color: "error",
       });
       return false;
@@ -472,11 +468,12 @@ export const useCategories = () => {
       }
 
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error);
+
       toast.add({
         title: "Erreur de restauration",
-        description:
-          error.response?._data?.message || "Impossible de restaurer",
+        description: errorMessage || "Impossible de restaurer",
         color: "error",
       });
       return false;
@@ -531,12 +528,12 @@ export const useCategories = () => {
       }
 
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error);
+
       toast.add({
         title: "Erreur",
-        description:
-          error.response?._data?.message ||
-          "Impossible de supprimer définitivement",
+        description: errorMessage || "Impossible de supprimer définitivement",
         color: "error",
       });
       return false;
@@ -576,12 +573,12 @@ export const useCategories = () => {
       }
 
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error);
+
       toast.add({
         title: "Erreur",
-        description:
-          error.response?._data?.message ||
-          "Impossible de déplacer la catégorie",
+        description: errorMessage || "Impossible de déplacer la catégorie",
         color: "error",
       });
       return false;
@@ -606,8 +603,8 @@ export const useCategories = () => {
       }
 
       return null;
-    } catch (error) {
-      console.error("Erreur lors du chargement des statistiques:", error);
+    } catch (_error: unknown) {
+      console.error("Erreur lors du chargement des statistiques:", _error);
       return null;
     }
   }
@@ -627,7 +624,17 @@ export const useCategories = () => {
       }
 
       return [];
-    } catch (error) {
+    } catch (_error: unknown) {
+
+      const message = getErrorMessage(_error)
+
+      toast.add({
+        title: 'Erreur',
+        description: message || 'Erreur lors du chargement de la fil d\'ariane',
+        color: 'error',
+        icon: 'i-lucide-alert-circle',
+        duration: 6000
+      })
       return [];
     }
   }
@@ -639,12 +646,15 @@ export const useCategories = () => {
   /**
    * Gère les erreurs de validation de l'API
    */
-  function handleValidationErrors(error: any): void {
-    const errors = error.response?._data?.errors;
+  function handleValidationErrors(error: unknown): void {
+    const apiError = error as {
+      response?: { _data?: { errors?: Record<string, string[]> } };
+    };
+    const errors = apiError.response?._data?.errors;
 
     if (errors && typeof errors === "object") {
       const errorMessages = Object.entries(errors)
-        .map(([field, messages]) => {
+        .map(([_field, messages]) => {
           const messageArray = Array.isArray(messages) ? messages : [messages];
           return messageArray.join("\n");
         })
@@ -658,14 +668,33 @@ export const useCategories = () => {
         duration: 6000,
       });
     } else {
+      const errorMessage = getApiErrorMessage(error);
+
       toast.add({
         title: "Erreur",
-        description:
-          error.response?._data?.message || "Une erreur est survenue",
+        description: errorMessage || "Une erreur est survenue",
         color: "error",
         icon: "i-lucide-alert-circle",
       });
     }
+  }
+
+  /**
+   * Obtient le message d'erreur d'une exception
+   */
+  function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return "Une erreur inconnue est survenue";
+  }
+
+  /**
+   * Obtient le message d'erreur de l'API
+   */
+  function getApiErrorMessage(error: unknown): string {
+    const apiError = error as { response?: { _data?: { message?: string } } };
+    return apiError.response?._data?.message || getErrorMessage(error);
   }
 
   // ============================================================================

@@ -7,29 +7,6 @@
 
 /**
  * Interface représentant une catégorie
- *
- * @property id - Identifiant unique (UUID)
- * @property parent_id - ID de la catégorie parente
- * @property name - Nom de la catégorie
- * @property slug - Slug URL-friendly
- * @property description - Description détaillée
- * @property image - Chemin relatif de l'image
- * @property image_url - URL complète de l'image
- * @property icon - Icône pour l'interface (ex: 'mars', 'venus')
- * @property color - Couleur thème en hexadécimal
- * @property level - Niveau hiérarchique (0 = genre, 1 = type, 2 = catégorie)
- * @property path - Chemin complet (/homme/hauts/tshirts)
- * @property is_active - Catégorie active/visible
- * @property is_visible_in_menu - Visible dans le menu principal
- * @property is_featured - Mise en avant
- * @property sort_order - Ordre d'affichage
- * @property meta_title - Titre SEO
- * @property meta_description - Description SEO
- * @property meta_data - Métadonnées JSON
- * @property products_count - Nombre de produits (calculé)
- * @property created_at - Date de création (ISO 8601)
- * @property updated_at - Date de modification (ISO 8601)
- * @property deleted_at - Date de suppression (ISO 8601)
  */
 export interface Category {
   id: string;

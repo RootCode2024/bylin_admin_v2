@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
-import { generateCode } from '~/utils/attribute'
-import type { AttributeType, AttributeValueFormData } from '~/types/attribute'
+import { generateAttributeCode } from '~/utils/attribute'
+import type { AttributeValueFormData } from '~/types/attribute'
 
 const emit = defineEmits<{
   created: []
@@ -72,7 +72,7 @@ const isColorType = computed(() => state.type === 'color')
 // Auto-génération du code à partir du nom
 watch(() => state.name, (newName) => {
   if (newName && !state.code) {
-    state.code = generateCode(newName)
+    state.code = generateAttributeCode(newName)
   }
 })
 
@@ -81,7 +81,7 @@ function addValue() {
   if (!newValue.value.trim()) return
 
   const value: AttributeValueFormData = {
-    value: generateCode(newValue.value),
+    value: generateAttributeCode(newValue.value),
     label: newValueLabel.value || newValue.value,
     sort_order: values.value.length,
   }
@@ -170,13 +170,20 @@ function handleModalClose() {
 </script>
 
 <template>
-  <UModal v-model:open="open" title="Nouvel attribut"
-    description="Créer un nouvel attribut produit (Couleur, Taille, etc.)" :ui="{ content: 'min-w-[60%]' }"
+  <UModal
+v-model:open="open"
+title="Nouvel attribut"
+    description="Créer un nouvel attribut produit (Couleur, Taille, etc.)"
+:ui="{ content: 'min-w-[60%]' }"
     @close="handleModalClose">
     <UButton label="Nouvel attribut" icon="i-lucide-plus" color="primary" />
 
     <template #body>
-      <UForm :schema="schema" :state="state" class="p-4 space-y-4" @submit="onSubmit">
+      <UForm
+:schema="schema"
+:state="state"
+class="p-4 space-y-4"
+@submit="onSubmit">
         <!-- Informations de base -->
         <div class="grid grid-cols-2 gap-4">
           <UFormField label="Nom de l'attribut" name="name" required>
@@ -194,9 +201,16 @@ function handleModalClose() {
         <!-- Type et configuration -->
         <div class="grid grid-cols-2 gap-4">
           <UFormField label="Type d'attribut" name="type" required>
-            <USelectMenu v-model="state.type" :items="typeOptions" value-key="value" label-key="label" class="w-full">
+            <USelectMenu
+v-model="state.type"
+:items="typeOptions"
+value-key="value"
+label-key="label"
+class="w-full">
               <template #leading>
-                <UIcon v-if="state.type" :name="typeOptions.find(t => t.value === state.type)?.icon || 'i-lucide-tag'"
+                <UIcon
+v-if="state.type"
+:name="typeOptions.find(t => t.value === state.type)?.icon || 'i-lucide-tag'"
                   class="size-4" />
               </template>
             </USelectMenu>
@@ -243,27 +257,50 @@ function handleModalClose() {
                   </UPopover>
                 </div>
                 <div :class="isColorType ? 'col-span-1' : 'col-span-4'">
-                  <UButton icon="i-lucide-plus" color="primary" block @click="addValue" :disabled="!newValue.trim()" />
+                  <UButton
+icon="i-lucide-plus"
+color="primary"
+block
+:disabled="!newValue.trim()"
+@click="addValue" />
                 </div>
               </div>
             </div>
 
             <!-- Liste des valeurs -->
             <div v-if="values.length > 0" class="mt-3 space-y-2">
-              <div v-for="(value, index) in values" :key="index"
+              <div
+v-for="(value, index) in values"
+:key="index"
                 class="flex items-center gap-2 p-2 bg-white dark:bg-gray-900 border rounded-lg">
-                <span v-if="isColorType && value.color_code" :style="{ backgroundColor: value.color_code }"
+                <span
+v-if="isColorType && value.color_code"
+:style="{ backgroundColor: value.color_code }"
                   class="size-4 rounded-full border" />
                 <div class="flex-1">
                   <p class="text-sm font-medium">{{ value.label }}</p>
                   <p class="text-xs text-gray-500">{{ value.value }}</p>
                 </div>
                 <div class="flex items-center gap-1">
-                  <UButton icon="i-lucide-arrow-up" color="neutral" variant="ghost" size="xs" :disabled="index === 0"
+                  <UButton
+icon="i-lucide-arrow-up"
+color="neutral"
+variant="ghost"
+size="xs"
+:disabled="index === 0"
                     @click="moveValue(index, 'up')" />
-                  <UButton icon="i-lucide-arrow-down" color="neutral" variant="ghost" size="xs"
-                    :disabled="index === values.length - 1" @click="moveValue(index, 'down')" />
-                  <UButton icon="i-lucide-trash-2" color="error" variant="ghost" size="xs"
+                  <UButton
+icon="i-lucide-arrow-down"
+color="neutral"
+variant="ghost"
+size="xs"
+                    :disabled="index === values.length - 1"
+@click="moveValue(index, 'down')" />
+                  <UButton
+icon="i-lucide-trash-2"
+color="error"
+variant="ghost"
+size="xs"
                     @click="removeValue(index)" />
                 </div>
               </div>
@@ -277,8 +314,17 @@ function handleModalClose() {
 
         <!-- Actions -->
         <div class="flex justify-end gap-3 pt-4 border-t">
-          <UButton label="Annuler" color="neutral" variant="ghost" @click="open = false" />
-          <UButton label="Créer l'attribut" color="primary" type="submit" :loading="loading" icon="i-lucide-check" />
+          <UButton
+label="Annuler"
+color="neutral"
+variant="ghost"
+@click="open = false" />
+          <UButton
+label="Créer l'attribut"
+color="primary"
+type="submit"
+:loading="loading"
+icon="i-lucide-check" />
         </div>
       </UForm>
     </template>

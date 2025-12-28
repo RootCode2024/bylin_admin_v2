@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { ProductFormData } from '~/types/product'
 
 definePageMeta({
   layout: 'default',
@@ -180,6 +179,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <ProductForm :is-saving="isSaving" :is-form-valid="isFormValid" mode="create" @save="handleSave"
+  <ProductForm
+:is-saving="isSaving"
+:is-form-valid="isFormValid"
+mode="create"
+@save="handleSave"
     @cancel="router.push('/products')" />
 </template>

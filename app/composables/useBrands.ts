@@ -4,7 +4,7 @@ import type {
   BrandStatistics,
   LaravelPaginator,
   ApiResponse,
-  LoadingState
+  LoadingState,
 } from "~/types/brand";
 
 export const useBrands = () => {
@@ -12,14 +12,12 @@ export const useBrands = () => {
   const toast = useToast();
   const { invalidateStatsCache } = useDashboard();
 
-
   const brands = useState<Brand[]>("brands", () => []);
   const loading = useState<boolean>("brands:loading", () => false);
   const loadingState = useState<LoadingState>(
     "brands:loadingState",
     () => "idle"
   );
-
 
   const pagination = useState("brands:pagination", () => ({
     pageIndex: 0,
@@ -77,7 +75,7 @@ export const useBrands = () => {
     lastError.value = null;
 
     try {
-      const params: Record<string, any> = {
+      const params: Record<string, string | number | boolean | undefined> = {
         page: pagination.value.pageIndex + 1,
         per_page: pagination.value.pageSize,
         search: filters.value.search || undefined,
@@ -111,16 +109,16 @@ export const useBrands = () => {
       } else {
         throw new Error(response.message || "Erreur lors du chargement");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       loadingState.value = "error";
-      lastError.value = error.message || "Erreur inconnue";
+      lastError.value = getErrorMessage(error);
       brands.value = [];
       pagination.value.total = 0;
 
       toast.add({
         title: "Erreur de chargement",
         description:
-          error.response?._data?.message || "Impossible de charger les marques",
+          getErrorResponseMessage(error) || "Impossible de charger les marques",
         color: "error",
         icon: "i-lucide-alert-circle",
       });
@@ -144,11 +142,11 @@ export const useBrands = () => {
       }
 
       return null;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.add({
         title: "Erreur",
         description:
-          error.response?._data?.message || "Impossible de charger la marque",
+          getErrorResponseMessage(error) || "Impossible de charger la marque",
         color: "error",
       });
       return null;
@@ -158,7 +156,7 @@ export const useBrands = () => {
   }
 
   async function createBrand(
-    data: FormData | Record<string, any>
+    data: FormData | Record<string, unknown>
   ): Promise<boolean> {
     loading.value = true;
     lastError.value = null;
@@ -187,8 +185,8 @@ export const useBrands = () => {
       }
 
       return false;
-    } catch (error: any) {
-      lastError.value = error.message;
+    } catch (error: unknown) {
+      lastError.value = getErrorMessage(error);
       handleValidationErrors(error);
       return false;
     } finally {
@@ -196,16 +194,28 @@ export const useBrands = () => {
     }
   }
 
-  async function updateBrand(id: string, data: FormData): Promise<boolean> {
+  async function updateBrand(
+    id: string,
+    data: FormData | Record<string, unknown>
+  ): Promise<boolean> {
     loading.value = true;
     lastError.value = null;
 
     try {
+      let method = "PUT";
+      let body = data;
+
+      if (data instanceof FormData) {
+        method = "POST";
+        data.append("_method", "PUT");
+        body = data;
+      }
+
       const response = await client<ApiResponse<Brand>>(
         `/api/v1/admin/brands/${id}`,
         {
-          method: "POST",
-          body: data,
+          method,
+          body,
         }
       );
 
@@ -216,14 +226,22 @@ export const useBrands = () => {
         if (index !== -1) {
           brands.value[index] = response.data;
         }
+
+        toast.add({
+          title: "Marque mise à jour",
+          description: "La marque a été mise à jour avec succès",
+          color: "success",
+          icon: "i-lucide-check-circle",
+        });
+
         return true;
       }
 
       return false;
-    } catch (err: any) {
+    } catch (error: unknown) {
       loading.value = false;
-      handleValidationErrors(err);
-      console.error("Update brand error:", err);
+      handleValidationErrors(error);
+      console.error("Update brand error:", error);
       return false;
     }
   }
@@ -265,11 +283,11 @@ export const useBrands = () => {
       }
 
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.add({
         title: "Erreur",
         description:
-          error.response?._data?.message || "Impossible de modifier le statut",
+          getErrorResponseMessage(error) || "Impossible de modifier le statut",
         color: "error",
       });
       return false;
@@ -321,11 +339,11 @@ export const useBrands = () => {
       }
 
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.add({
         title: "Erreur de suppression",
         description:
-          error.response?._data?.message || "Impossible de supprimer",
+          getErrorResponseMessage(error) || "Impossible de supprimer",
         color: "error",
       });
       return false;
@@ -376,11 +394,11 @@ export const useBrands = () => {
       }
 
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.add({
         title: "Erreur de restauration",
         description:
-          error.response?._data?.message || "Impossible de restaurer",
+          getErrorResponseMessage(error) || "Impossible de restaurer",
         color: "error",
       });
       return false;
@@ -432,11 +450,11 @@ export const useBrands = () => {
       }
 
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.add({
         title: "Erreur",
         description:
-          error.response?._data?.message ||
+          getErrorResponseMessage(error) ||
           "Impossible de supprimer définitivement",
         color: "error",
       });
@@ -469,13 +487,12 @@ export const useBrands = () => {
   // GESTION DES ERREURS
   // ============================================================================
 
-  function handleValidationErrors(error: any): void {
-    const errors = error.response?._data?.errors;
+  function handleValidationErrors(error: unknown): void {
+    const errors = getErrorResponseErrors(error);
 
     if (errors && typeof errors === "object") {
-
       const errorMessages = Object.entries(errors)
-        .map(([field, messages]) => {
+        .map(([messages]) => {
           const messageArray = Array.isArray(messages) ? messages : [messages];
           return messageArray.join("\n");
         })
@@ -492,11 +509,47 @@ export const useBrands = () => {
       toast.add({
         title: "Erreur",
         description:
-          error.response?._data?.message || "Une erreur est survenue",
+          getErrorResponseMessage(error) || "Une erreur est survenue",
         color: "error",
         icon: "i-lucide-alert-circle",
       });
     }
+  }
+
+  // Fonctions utilitaires pour gérer les erreurs
+  function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    } else if (typeof error === "string") {
+      return error;
+    }
+    return "Une erreur inconnue est survenue";
+  }
+
+  function getErrorResponseMessage(error: unknown): string | undefined {
+    if (error && typeof error === "object" && "response" in error) {
+      const response = (
+        error as { response?: { _data?: { message?: string } } }
+      ).response;
+      if (response?._data?.message) {
+        return response._data.message;
+      }
+    }
+    return undefined;
+  }
+
+  function getErrorResponseErrors(
+    error: unknown
+  ): Record<string, string[]> | undefined {
+    if (error && typeof error === "object" && "response" in error) {
+      const response = (
+        error as {
+          response?: { _data?: { errors?: Record<string, string[]> } };
+        }
+      ).response;
+      return response?._data?.errors;
+    }
+    return undefined;
   }
 
   // ============================================================================

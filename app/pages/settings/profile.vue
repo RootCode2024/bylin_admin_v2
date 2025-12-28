@@ -31,10 +31,10 @@ const user = ref({
         <template #header><h3 class="font-bold">Sécurité</h3></template>
         <div class="space-y-4">
             <UFormGroup label="Mot de passe actuel">
-                <UInput type="password" v-model="user.currentPassword" />
+                <UInput v-model="user.currentPassword" type="password" />
             </UFormGroup>
             <UFormGroup label="Nouveau mot de passe">
-                <UInput type="password" v-model="user.newPassword" />
+                <UInput v-model="user.newPassword" type="password" />
             </UFormGroup>
         </div>
         <template #footer>

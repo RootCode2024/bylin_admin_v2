@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { Collection } from '~/types/collection'
 import type { Product } from '~/types/product'
 
 definePageMeta({
@@ -122,15 +121,6 @@ function handleProductsAdded() {
   isAddProductsModalOpen.value = false
   loadCollection()
 }
-
-// Helper pour confirmation
-function confirm(message: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    const isConfirmed = window.confirm(message)
-    resolve(isConfirmed)
-  })
-}
-
 // ========================================
 // Lifecycle
 // ========================================
@@ -233,7 +223,7 @@ onMounted(() => {
                   :src="collection.cover_image_url"
                   :alt="collection.name"
                   class="w-full h-full object-cover"
-                />
+                >
                 <div v-else class="w-full h-full flex items-center justify-center">
                   <UIcon name="i-lucide-image" class="w-16 h-16 text-gray-400" />
                 </div>
@@ -251,7 +241,7 @@ onMounted(() => {
                   :src="collection.banner_image_url"
                   :alt="`${collection.name} - Bannière`"
                   class="w-full h-full object-cover"
-                />
+                >
               </div>
             </UCard>
           </div>
@@ -419,7 +409,7 @@ onMounted(() => {
                     :src="product.thumbnail_url"
                     :alt="product.name"
                     class="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                  />
+                  >
                   <div v-else class="w-full h-full flex items-center justify-center">
                     <UIcon name="i-lucide-image" class="w-8 h-8 text-gray-400" />
                   </div>
@@ -512,9 +502,13 @@ onMounted(() => {
     @deleted="handleDelete"
   />
 
-  <CollectionConfirmDialog v-model:open="isConfirmRemoveOpen" title="Retirer le produit"
+  <CollectionConfirmDialog
+v-model:open="isConfirmRemoveOpen"
+title="Retirer le produit"
     :description="`Êtes-vous sûr de vouloir retirer &quot;${productToRemove?.name}&quot; de cette collection ?`"
-    confirm-label="Retirer" variant="danger" @confirm="onConfirmRemove" />
+    confirm-label="Retirer"
+variant="danger"
+@confirm="onConfirmRemove" />
 
   <CollectionAddProductsModal
     v-model:open="isAddProductsModalOpen"

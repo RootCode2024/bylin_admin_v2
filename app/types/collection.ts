@@ -172,7 +172,7 @@ export interface CollectionFormData {
   meta_title?: string;
   meta_description?: string;
 
-  // Images - ✅ File objects pour nouveaux uploads
+  // Image
   cover_image?: File;
   banner_image?: File;
 

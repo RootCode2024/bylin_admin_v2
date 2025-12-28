@@ -10,7 +10,6 @@
  */
 export default defineNuxtPlugin(() => {
   const toast = useToast();
-  const router = useRouter();
   const config = useRuntimeConfig();
 
   // Logs uniquement en dev
@@ -22,7 +21,6 @@ export default defineNuxtPlugin(() => {
   const handleError = async (error: any) => {
     const status = error.response?.status;
     const data = error.response?._data;
-    const message = data?.message || "Une erreur est survenue";
 
     // Log détaillé en dev uniquement
     if (isDev) {
@@ -117,7 +115,7 @@ export default defineNuxtPlugin(() => {
       return await originalFetch<T>(url, options);
     } catch (error) {
       await handleError(error);
-      throw error; // Re-throw pour les composables
+      throw error;
     }
   };
 

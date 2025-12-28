@@ -5,29 +5,18 @@ import { getCategorySelectOptions } from '~/utils/category'
 import { DEFAULT_IMAGE_CONFIG } from '~/utils/helpers'
 import { CATEGORY_ICONS } from '~/types/category'
 
-/**
- * Composant de création de catégorie
- */
-
-// Événements émis par le composant
 const emit = defineEmits<{
   created: []
 }>()
 
-// Composables
 const { createCategory, loading, categories } = useCategories()
 
-// État du modal
 const open = ref(false)
 
-// URLs d'objets à nettoyer
 const objectUrls = new Set<string>()
 
 const DEFAULT_COLOR = '#0066bf'
 
-/**
- * Schéma de validation Zod
- */
 const schema = z.object({
   parent_id: z.string().optional().nullable(),
   name: z.string()
@@ -110,22 +99,6 @@ const iconOptions = computed(() => {
   ]
 })
 
-async function validateImageDimensions(file: File): Promise<boolean> {
-  return new Promise((resolve) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const img = new Image()
-      img.onload = () => {
-        const { width, height } = img
-        const { minDimensions, maxDimensions } = DEFAULT_IMAGE_CONFIG
-        resolve(width >= minDimensions.width && height >= minDimensions.height && width <= maxDimensions.width && height <= maxDimensions.height)
-      }
-      img.src = e.target?.result as string
-    }
-    reader.readAsDataURL(file)
-  })
-}
-
 function createPreviewUrl(file: File): string {
   const url = URL.createObjectURL(file)
   objectUrls.add(url)
@@ -192,49 +165,88 @@ onBeforeUnmount(() => cleanupObjectUrls())
 </script>
 
 <template>
-  <UModal v-model:open="open" title="Nouvelle catégorie" description="Créer une nouvelle catégorie de produits"
-    :ui="{ content: 'min-w-[60%]' }" @close="handleModalClose">
+  <UModal
+v-model:open="open"
+title="Nouvelle catégorie"
+description="Créer une nouvelle catégorie de produits"
+    :ui="{ content: 'min-w-[60%]' }"
+@close="handleModalClose">
 
     <UButton label="Nouvelle catégorie" icon="i-lucide-plus" color="primary" />
 
     <template #body>
-      <UForm :schema="schema" :state="state" class="p-4 space-y-4" @submit="onSubmit">
+      <UForm
+:schema="schema"
+:state="state"
+class="p-4 space-y-4"
+@submit="onSubmit">
         <div class="grid grid-cols-2 gap-4">
           <UFormField label="Catégorie parente" name="parent_id">
-            <USelectMenu v-model="state.parent_id" :items="parentOptions" value-key="value" label-key="label"
-              placeholder="Sélectionner un parent..." :disabled="loading" class="w-full" />
+            <USelectMenu
+v-model="state.parent_id"
+:items="parentOptions"
+value-key="value"
+label-key="label"
+              placeholder="Sélectionner un parent..."
+:disabled="loading"
+class="w-full" />
           </UFormField>
 
           <UFormField label="Nom de la catégorie" name="name" required>
-            <UInput v-model="state.name" placeholder="T-shirts..." class="w-full" :disabled="loading" />
+            <UInput
+v-model="state.name"
+placeholder="T-shirts..."
+class="w-full"
+:disabled="loading" />
           </UFormField>
         </div>
 
         <UFormField label="Description" name="description">
-          <UTextarea v-model="state.description" :rows="3" class="w-full" :disabled="loading" />
+          <UTextarea
+v-model="state.description"
+:rows="3"
+class="w-full"
+:disabled="loading" />
         </UFormField>
 
         <!-- Image -->
         <UFormField label="Image bannière" name="image">
-          <UFileUpload v-slot="{ open: openFileDialog, removeFile }" v-model="state.image"
+          <UFileUpload
+v-slot="{ open: openFileDialog, removeFile }"
+v-model="state.image"
             :accept="DEFAULT_IMAGE_CONFIG.acceptedTypes.join(',')">
             <div class="flex items-center gap-3">
               <UAvatar size="lg" :src="state.image ? createPreviewUrl(state.image) : undefined" icon="i-lucide-image" />
-              <UButton label="Télécharger" color="neutral" variant="outline" icon="i-lucide-upload"
-                @click="openFileDialog()" :disabled="loading" />
+              <UButton
+label="Télécharger"
+color="neutral"
+variant="outline"
+icon="i-lucide-upload"
+                :disabled="loading"
+@click="openFileDialog()" />
             </div>
             <p v-if="state.image" class="text-xs mt-2">
               {{ state.image.name }}
-              <UButton label="Supprimer" color="error" variant="link" size="xs" @click="removeFile()" />
+              <UButton
+label="Supprimer"
+color="error"
+variant="link"
+size="xs"
+@click="removeFile()" />
             </p>
           </UFileUpload>
         </UFormField>
 
-        <!-- Icône et Couleur corrigés -->
+        <!-- Icône et Couleur -->
         <div class="grid grid-cols-2 gap-4">
           <UFormField label="Icône" name="icon">
-            <USelectMenu :key="`icon-create-${open}`" v-model="state.icon" :items="iconOptions" value-key="value"
-              label-key="label" class="w-full">
+            <USelectMenu
+:key="`icon-create-${open}`"
+v-model="state.icon"
+:items="iconOptions"
+value-key="value"
+              label-key="label"
+class="w-full">
               <template #leading>
                 <UIcon v-if="state.icon && state.icon !== 'none'" :name="`i-lucide-${state.icon}`" class="size-4" />
                 <UIcon v-else name="i-lucide-search" class="size-4 text-gray-400" />
@@ -244,7 +256,11 @@ onBeforeUnmount(() => cleanupObjectUrls())
 
           <UFormField label="Couleur thème" name="color">
             <UPopover>
-              <UButton label="Choisir une couleur" color="neutral" variant="outline" class="w-full">
+              <UButton
+label="Choisir une couleur"
+color="neutral"
+variant="outline"
+class="w-full">
                 <template #leading>
                   <span :style="chip" class="size-3 rounded-full" />
                 </template>
@@ -279,8 +295,17 @@ onBeforeUnmount(() => cleanupObjectUrls())
         </div>
 
         <div class="flex justify-end gap-3 pt-4 border-t">
-          <UButton label="Annuler" color="neutral" variant="ghost" @click="open = false" />
-          <UButton label="Créer la catégorie" color="primary" type="submit" :loading="loading" icon="i-lucide-check" />
+          <UButton
+label="Annuler"
+color="neutral"
+variant="ghost"
+@click="open = false" />
+          <UButton
+label="Créer la catégorie"
+color="primary"
+type="submit"
+:loading="loading"
+icon="i-lucide-check" />
         </div>
       </UForm>
     </template>

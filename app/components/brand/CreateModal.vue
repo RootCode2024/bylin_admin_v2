@@ -3,25 +3,15 @@ import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import { DEFAULT_IMAGE_CONFIG, buildWebsiteUrl, formatFileSize } from '~/utils/helpers'
 
-/**
- * Composant de création de marque
- *
- * Modal permettant de créer une nouvelle marque avec upload de logo
- * et validation complète des données
- */
-
-// Événements émis par le composant
 const emit = defineEmits<{
   created: []
 }>()
 
-// Composable de gestion des marques
 const { createBrand, loading } = useBrands()
 
-// État du modal
 const open = ref(false)
 
-// Domaines disponibles pour le site web
+// Domaines disponibles pour les sites web
 const WEBSITE_DOMAINS = ['.com', '.fr', '.dev', '.org', '.net', '.io', '.site', '.uk'] as const
 type WebsiteDomain = typeof WEBSITE_DOMAINS[number]
 const selectedDomain = ref<WebsiteDomain>(WEBSITE_DOMAINS[0])
@@ -32,9 +22,7 @@ const websiteDomainItems = computed(() => [...WEBSITE_DOMAINS])
 // URLs d'objets à nettoyer
 const objectUrls = new Set<string>()
 
-/**
- * Schéma de validation Zod pour le formulaire
- */
+// Schéma de validation Zod pour le formulaire
 const schema = z.object({
   name: z.string()
     .min(2, 'Le nom doit contenir au moins 2 caractères')
@@ -89,9 +77,7 @@ const schema = z.object({
 
 type BrandFormSchema = z.infer<typeof schema>
 
-/**
- * État du formulaire
- */
+// État du formulaire
 const state = reactive<Partial<BrandFormSchema>>({
   name: '',
   description: '',
@@ -101,9 +87,7 @@ const state = reactive<Partial<BrandFormSchema>>({
   sort_order: 0
 })
 
-/**
- * Valeurs par défaut pour la réinitialisation
- */
+// Valeurs par défaut pour la réinitialisation
 const defaultState: Partial<BrandFormSchema> = {
   name: '',
   description: '',
@@ -145,9 +129,7 @@ async function validateImageDimensions(file: File): Promise<boolean> {
   })
 }
 
-/**
- * Crée une URL d'objet pour l'aperçu et la stocke pour nettoyage
- */
+// Crée une URL d'objet pour l'aperçu et la stocke pour nettoyage
 function createPreviewUrl(file: File): string {
   const url = URL.createObjectURL(file)
   objectUrls.add(url)
@@ -230,57 +212,104 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <UModal v-model:open="open" title="Nouvelle marque" description="Créer une nouvelle marque de produits"
-    :ui="{ body: 'min-w-xl' }" @close="handleModalClose">
+  <UModal
+v-model:open="open"
+title="Nouvelle marque"
+description="Créer une nouvelle marque de produits"
+    :ui="{ body: 'min-w-xl' }"
+@close="handleModalClose">
     <!-- Bouton déclencheur du modal -->
     <UButton label="Nouvelle marque" icon="i-lucide-plus" color="primary" />
 
     <template #content>
-      <UForm :schema="schema" :state="state" class="p-4 space-y-4" @submit="onSubmit">
+      <UForm
+:schema="schema"
+:state="state"
+class="p-4 space-y-4"
+@submit="onSubmit">
         <!-- Nom de la marque -->
-        <UFormField label="Nom de la marque" name="name" required description="Nom officiel de la marque">
-          <UInput v-model="state.name" placeholder="Nike, Adidas, Apple..." autofocus class="w-full" maxlength="100"
+        <UFormField
+label="Nom de la marque"
+name="name"
+required
+description="Nom officiel de la marque">
+          <UInput
+v-model="state.name"
+placeholder="Nike, Adidas, Apple..."
+autofocus
+class="w-full"
+maxlength="100"
             :disabled="loading" />
         </UFormField>
 
         <!-- Description -->
         <UFormField label="Description" name="description" description="Description détaillée de la marque (optionnel)">
-          <UTextarea v-model="state.description" placeholder="Description de la marque..." :rows="4" class="w-full"
-            maxlength="2000" :disabled="loading" />
+          <UTextarea
+v-model="state.description"
+placeholder="Description de la marque..."
+:rows="4"
+class="w-full"
+            maxlength="2000"
+:disabled="loading" />
         </UFormField>
 
         <!-- Upload du logo -->
-        <UFormField label="Logo" name="logo"
+        <UFormField
+label="Logo"
+name="logo"
           :description="`Formats acceptés : ${DEFAULT_IMAGE_CONFIG.acceptedTypes.map(t => t.split('/')[1]?.toUpperCase() || '').join(', ')}. Taille max : ${formatFileSize(DEFAULT_IMAGE_CONFIG.maxFileSize)}.`">
-          <UFileUpload v-slot="{ open: openFileDialog, removeFile }" v-model="state.logo"
+          <UFileUpload
+v-slot="{ open: openFileDialog, removeFile }"
+v-model="state.logo"
             :accept="DEFAULT_IMAGE_CONFIG.acceptedTypes.join(',')">
             <div class="flex flex-wrap items-center gap-3">
               <!-- Aperçu du logo -->
-              <UAvatar size="lg" :src="state.logo ? createPreviewUrl(state.logo) : undefined" icon="i-lucide-image"
+              <UAvatar
+size="lg"
+:src="state.logo ? createPreviewUrl(state.logo) : undefined"
+icon="i-lucide-image"
                 alt="Aperçu du logo" />
 
               <!-- Bouton de téléchargement -->
-              <UButton :label="state.logo ? 'Modifier le logo' : 'Télécharger un logo'" color="neutral"
-                variant="outline" icon="i-lucide-upload" @click="openFileDialog()" :disabled="loading" />
+              <UButton
+:label="state.logo ? 'Modifier le logo' : 'Télécharger un logo'"
+color="neutral"
+                variant="outline"
+icon="i-lucide-upload"
+:disabled="loading"
+@click="openFileDialog()" />
             </div>
 
             <!-- Informations sur le fichier sélectionné -->
             <p v-if="state.logo" class="text-xs text-muted mt-1.5">
               {{ state.logo.name }} ({{ formatFileSize(state.logo.size) }})
-              <UButton label="Supprimer" color="error" variant="link" size="xs" class="p-0 ml-2" @click="removeFile()"
-                :disabled="loading" />
+              <UButton
+label="Supprimer"
+color="error"
+variant="link"
+size="xs"
+class="p-0 ml-2"
+:disabled="loading"
+                @click="removeFile()" />
             </p>
           </UFileUpload>
         </UFormField>
 
         <!-- Site web avec sélecteur de domaine -->
-        <UFormField label="Site web" name="websiteDomain"
+        <UFormField
+label="Site web"
+name="websiteDomain"
           description="Nom de domaine sans le protocole ni l'extension (exemple: monsite)">
           <UFieldGroup>
-            <UInput v-model="state.websiteDomain" placeholder="exemple" :ui="{
+            <UInput
+v-model="state.websiteDomain"
+placeholder="exemple"
+:ui="{
               base: 'pl-16',
               leading: 'pointer-events-none'
-            }" maxlength="150" :disabled="loading">
+            }"
+maxlength="150"
+:disabled="loading">
               <template #leading>
                 <p class="text-sm text-muted">
                   https://
@@ -298,9 +327,17 @@ onBeforeUnmount(() => {
         </UFormField>
 
         <!-- Ordre de tri -->
-        <UFormField label="Ordre de tri" name="sort_order"
+        <UFormField
+label="Ordre de tri"
+name="sort_order"
           description="Détermine la position d'affichage (0 = première position)">
-          <UInput v-model.number="state.sort_order" type="number" min="0" max="9999" step="1" :disabled="loading" />
+          <UInput
+v-model.number="state.sort_order"
+type="number"
+min="0"
+max="9999"
+step="1"
+:disabled="loading" />
         </UFormField>
 
         <!-- Statut actif -->
@@ -315,8 +352,18 @@ onBeforeUnmount(() => {
 
         <!-- Actions du formulaire -->
         <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
-          <UButton label="Annuler" color="neutral" variant="ghost" @click="open = false" :disabled="loading" />
-          <UButton label="Créer la marque" color="primary" type="submit" :loading="loading" icon="i-lucide-check" />
+          <UButton
+label="Annuler"
+color="neutral"
+variant="ghost"
+:disabled="loading"
+@click="open = false" />
+          <UButton
+label="Créer la marque"
+color="primary"
+type="submit"
+:loading="loading"
+icon="i-lucide-check" />
         </div>
       </UForm>
     </template>

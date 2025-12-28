@@ -117,10 +117,18 @@ async function onSubmit(event: FormSubmitEvent<PromotionFormSchema>) {
 </script>
 
 <template>
-  <UModal v-model:open="open" title="Modifier la promotion"
-    :description="`Modification de la promotion ${promotion?.name || ''}`" :ui="{ content: 'min-w-[60%]' }">
+  <UModal
+v-model:open="open"
+title="Modifier la promotion"
+    :description="`Modification de la promotion ${promotion?.name || ''}`"
+:ui="{ content: 'min-w-[60%]' }">
     <template #body>
-      <UForm v-if="promotion" :schema="schema" :state="state" class="p-4 space-y-4" @submit="onSubmit">
+      <UForm
+v-if="promotion"
+:schema="schema"
+:state="state"
+class="p-4 space-y-4"
+@submit="onSubmit">
         <div class="grid grid-cols-2 gap-4">
           <UFormField label="Nom de la promotion" name="name" required>
             <UInput v-model="state.name" :disabled="loading" />
@@ -140,16 +148,27 @@ async function onSubmit(event: FormSubmitEvent<PromotionFormSchema>) {
 
         <div class="grid grid-cols-2 gap-4">
           <UFormField label="Type de réduction" name="type" required>
-            <USelectMenu v-model="state.type" :items="typeOptions" value-key="value" label-key="label">
+            <USelectMenu
+v-model="state.type"
+:items="typeOptions"
+value-key="value"
+label-key="label">
               <template #leading>
-                <UIcon v-if="state.type" :name="typeOptions.find(t => t.value === state.type)?.icon || 'i-lucide-tag'"
+                <UIcon
+v-if="state.type"
+:name="typeOptions.find(t => t.value === state.type)?.icon || 'i-lucide-tag'"
                   class="size-4" />
               </template>
             </USelectMenu>
           </UFormField>
 
           <UFormField :label="isPercentage ? 'Pourcentage (%)' : 'Montant (FCFA)'" name="value" required>
-            <UInput v-model.number="state.value" type="number" :min="0" :max="maxValue" :disabled="loading" />
+            <UInput
+v-model.number="state.value"
+type="number"
+:min="0"
+:max="maxValue"
+:disabled="loading" />
           </UFormField>
         </div>
 
@@ -157,11 +176,19 @@ async function onSubmit(event: FormSubmitEvent<PromotionFormSchema>) {
           <h4 class="text-sm font-medium mb-3">Conditions d'application</h4>
           <div class="grid grid-cols-2 gap-4">
             <UFormField label="Montant minimum (FCFA)" name="min_purchase_amount">
-              <UInput v-model.number="state.min_purchase_amount" type="number" min="0" :disabled="loading" />
+              <UInput
+v-model.number="state.min_purchase_amount"
+type="number"
+min="0"
+:disabled="loading" />
             </UFormField>
 
             <UFormField label="Réduction maximale (FCFA)" name="max_discount_amount">
-              <UInput v-model.number="state.max_discount_amount" type="number" min="0" :disabled="loading" />
+              <UInput
+v-model.number="state.max_discount_amount"
+type="number"
+min="0"
+:disabled="loading" />
             </UFormField>
           </div>
         </div>
@@ -170,7 +197,11 @@ async function onSubmit(event: FormSubmitEvent<PromotionFormSchema>) {
           <h4 class="text-sm font-medium mb-3">Limites d'utilisation</h4>
           <div class="grid grid-cols-2 gap-4">
             <UFormField label="Utilisation totale" name="usage_limit">
-              <UInput v-model.number="state.usage_limit" type="number" min="1" :disabled="loading" />
+              <UInput
+v-model.number="state.usage_limit"
+type="number"
+min="1"
+:disabled="loading" />
               <template #hint>
                 <span class="text-xs text-gray-500">
                   Utilisé : {{ promotion.usage_count }} fois
@@ -179,7 +210,11 @@ async function onSubmit(event: FormSubmitEvent<PromotionFormSchema>) {
             </UFormField>
 
             <UFormField label="Par client" name="usage_limit_per_customer">
-              <UInput v-model.number="state.usage_limit_per_customer" type="number" min="1" :disabled="loading" />
+              <UInput
+v-model.number="state.usage_limit_per_customer"
+type="number"
+min="1"
+:disabled="loading" />
             </UFormField>
           </div>
         </div>
@@ -204,8 +239,17 @@ async function onSubmit(event: FormSubmitEvent<PromotionFormSchema>) {
         </div>
 
         <div class="flex justify-end gap-3 pt-4 border-t">
-          <UButton label="Annuler" color="neutral" variant="ghost" @click="open = false" />
-          <UButton label="Mettre à jour" color="primary" type="submit" :loading="loading" icon="i-lucide-check" />
+          <UButton
+label="Annuler"
+color="neutral"
+variant="ghost"
+@click="open = false" />
+          <UButton
+label="Mettre à jour"
+color="primary"
+type="submit"
+:loading="loading"
+icon="i-lucide-check" />
         </div>
       </UForm>
     </template>

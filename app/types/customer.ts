@@ -9,7 +9,7 @@ export interface Customer {
   gender?: "male" | "female" | "other" | null;
   avatar?: string | null;
   avatar_url?: string | undefined;
-  preferences?: Record<string, any>;
+  preferences?: Record<string, unknown>;
   oauth_provider?: string | null;
   oauth_provider_id?: string | null;
   email_verified_at?: string | null;

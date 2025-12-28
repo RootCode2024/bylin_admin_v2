@@ -1,13 +1,21 @@
 <script setup lang="ts">
 import type { Category } from '~/types/category'
+import type { Brand } from '~/types/brand'
 import { useProductFormStore } from '~/stores/productForm'
 
 const props = defineProps<{
-  brands: any[]
+  brands: Brand[]
   categories: readonly Category[]
 }>()
 
 const productFormStore = useProductFormStore()
+
+// interface pour les options de catégorie
+interface CategoryOption {
+  label: string
+  value: number | string
+  level?: number
+}
 
 const selectedBrand = computed(() => {
   if (!productFormStore.formData.brand_id) return null
@@ -23,9 +31,13 @@ const brandOptions = computed(() => {
 })
 
 const categoryOptions = computed(() => {
-  const flatten = (cats: readonly Category[], prefix = '', result: any[] = []) => {
+  const flatten = (cats: readonly Category[], prefix = '', result: CategoryOption[] = []): CategoryOption[] => {
     cats.forEach(cat => {
-      result.push({ label: prefix + cat.name, value: cat.id, level: cat.level })
+      result.push({
+        label: prefix + cat.name,
+        value: cat.id,
+        level: cat.level
+      })
       if (cat.children?.length) flatten(cat.children, prefix + '  ', result)
     })
     return result
@@ -51,29 +63,44 @@ function generateSlug() {
   <div class="space-y-6 p-6">
     <div class="grid grid-cols-2 gap-4">
       <UFormField label="Marque" required>
-        <USelectMenu :model-value="productFormStore.formData.brand_id"
-          @update:model-value="productFormStore.setFormData({ brand_id: $event })" :items="brandOptions"
-          value-key="value" label-key="label" placeholder="Sélectionner une marque" searchable class="w-full">
-          <template #leading v-if="selectedBrand">
-            <img v-if="selectedBrand.logo_url" :src="selectedBrand.logo_url" class="w-4 h-4 object-contain rounded" />
+        <USelectMenu
+:model-value="productFormStore.formData.brand_id"
+:items="brandOptions"
+value-key="value"
+          label-key="label"
+placeholder="Sélectionner une marque"
+searchable
+class="w-full"
+          @update:model-value="productFormStore.setFormData({ brand_id: $event })">
+          <template v-if="selectedBrand" #leading>
+            <img v-if="selectedBrand.logo_url" :src="selectedBrand.logo_url" class="w-4 h-4 object-contain rounded">
             <UIcon v-else name="i-lucide-tag" class="w-4 h-4 text-gray-400" />
           </template>
         </USelectMenu>
       </UFormField>
 
       <UFormField label="Catégories" required>
-        <USelectMenu :model-value="productFormStore.formData.categories"
-          @update:model-value="productFormStore.setFormData({ categories: $event })" :items="categoryOptions"
-          value-key="value" label-key="label" placeholder="Sélectionner des catégories" multiple searchable
-          class="w-full" />
+        <USelectMenu
+:model-value="productFormStore.formData.categories"
+:items="categoryOptions"
+value-key="value"
+          label-key="label"
+placeholder="Sélectionner des catégories"
+multiple
+searchable
+class="w-full"
+          @update:model-value="productFormStore.setFormData({ categories: $event as string[] })" />
       </UFormField>
     </div>
 
     <div class="grid grid-cols-3 gap-4">
       <UFormField label="Nom du produit" required>
-        <UInput :model-value="productFormStore.formData.name"
-          @update:model-value="productFormStore.setFormData({ name: $event })" @blur="generateSlug"
-          placeholder="Ex: T-shirt Nike Dri-FIT" class="w-full" />
+        <UInput
+:model-value="productFormStore.formData.name"
+placeholder="Ex: T-shirt Nike Dri-FIT"
+class="w-full"
+          @update:model-value="productFormStore.setFormData({ name: $event })"
+@blur="generateSlug" />
       </UFormField>
 
       <UFormField label="Slug">
@@ -88,15 +115,21 @@ function generateSlug() {
     <USeparator />
 
     <UFormField label="Description courte">
-      <UTextarea :model-value="productFormStore.formData.short_description"
-        @update:model-value="productFormStore.setFormData({ short_description: $event })" :rows="3"
-        placeholder="Résumé en quelques mots..." class="w-full" />
+      <UTextarea
+:model-value="productFormStore.formData.short_description"
+:rows="3"
+        placeholder="Résumé en quelques mots..."
+class="w-full"
+        @update:model-value="productFormStore.setFormData({ short_description: $event })" />
     </UFormField>
 
     <UFormField label="Description complète">
-      <UTextarea :model-value="productFormStore.formData.description"
-        @update:model-value="productFormStore.setFormData({ description: $event })" :rows="8"
-        placeholder="Description détaillée du produit..." class="w-full" />
+      <UTextarea
+:model-value="productFormStore.formData.description"
+:rows="8"
+        placeholder="Description détaillée du produit..."
+class="w-full"
+        @update:model-value="productFormStore.setFormData({ description: $event })" />
     </UFormField>
   </div>
 </template>

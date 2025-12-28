@@ -69,7 +69,11 @@ onMounted(async () => {
     <template #header>
       <UDashboardNavbar>
         <template #left>
-          <UButton icon="i-lucide-arrow-left" color="neutral" variant="ghost" @click="emit('cancel')" />
+          <UButton
+icon="i-lucide-arrow-left"
+color="neutral"
+variant="ghost"
+@click="emit('cancel')" />
           <div class="ml-4">
             <h1 class="text-xl font-semibold">{{ pageTitle }}</h1>
             <p class="text-sm text-gray-500">{{ pageDescription }}</p>
@@ -78,11 +82,17 @@ onMounted(async () => {
 
         <template #right>
           <div class="flex items-center gap-2">
-            <UBadge v-if="mode === 'edit' && hasUnsavedChanges" color="warning" variant="soft" size="sm">
+            <UBadge
+v-if="mode === 'edit' && hasUnsavedChanges"
+color="warning"
+variant="soft"
+size="sm">
               Non sauvegardé
             </UBadge>
 
-            <UDropdownMenu v-if="mode === 'edit'" :items="[
+            <UDropdownMenu
+v-if="mode === 'edit'"
+:items="[
               [
                 { label: 'Dupliquer', icon: 'i-lucide-copy', onSelect: () => emit('duplicate') },
                 {
@@ -103,11 +113,21 @@ onMounted(async () => {
             </UDropdownMenu>
 
             <!-- Cancel button (create only) -->
-            <UButton v-if="mode === 'create'" label="Annuler" color="neutral" variant="ghost" @click="emit('cancel')" />
+            <UButton
+v-if="mode === 'create'"
+label="Annuler"
+color="neutral"
+variant="ghost"
+@click="emit('cancel')" />
 
             <!-- Save button -->
-            <UButton :label="saveButtonLabel" :icon="saveButtonIcon" color="primary" :loading="isSaving"
-              :disabled="mode === 'create' ? !isFormValid : !hasUnsavedChanges" @click="emit('save')" />
+            <UButton
+:label="saveButtonLabel"
+:icon="saveButtonIcon"
+color="primary"
+:loading="isSaving"
+              :disabled="mode === 'create' ? !isFormValid : !hasUnsavedChanges"
+@click="emit('save')" />
           </div>
         </template>
       </UDashboardNavbar>

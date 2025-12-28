@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { z } from 'zod'
 import type { Customer } from '~/types/customer'
-import { customerFormSchema, Gender } from '~/utils/validation'
+import type { Gender } from '~/utils/validation';
+import { customerFormSchema } from '~/utils/validation'
 import { parseStoredPhone, formatPhoneNumber } from '~/utils/format'
 import type { FormSubmitEvent } from '@nuxt/ui'
 
@@ -80,7 +81,6 @@ async function loadData() {
   if (data) {
     customer.value = data
 
-    // Parser le téléphone stocké
     const parsedPhone = parseStoredPhone(data.phone)
 
     Object.assign(state, {
@@ -104,10 +104,8 @@ async function onSubmit(event: FormSubmitEvent<CustomerForm>) {
   if (!customer.value) return
 
   try {
-    // Valider avec le schema
     const validatedData = await customerFormSchema.parseAsync(event.data)
 
-    // Préparer les données pour l'API
     const updateData: Partial<Customer> = {
       first_name: validatedData.first_name,
       last_name: validatedData.last_name,
@@ -136,10 +134,11 @@ async function onSubmit(event: FormSubmitEvent<CustomerForm>) {
       isEditing.value = false
       await loadData()
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = getErrorMessage(error)
     toast.add({
       title: 'Erreur de validation',
-      description: error.errors?.[0]?.message || 'Veuillez vérifier les informations saisies',
+      description: message,
       color: 'error'
     })
   }
@@ -214,7 +213,11 @@ onMounted(loadData)
     <template #header>
       <UDashboardNavbar>
         <template #left>
-          <UButton icon="i-lucide-arrow-left" variant="ghost" color="neutral" @click="router.back()" />
+          <UButton
+icon="i-lucide-arrow-left"
+variant="ghost"
+color="neutral"
+@click="router.back()" />
           <div v-if="isInitialLoading" class="w-32">
             <USkeleton class="h-6 w-full" />
           </div>
@@ -225,10 +228,18 @@ onMounted(loadData)
 
         <template #right>
           <div class="flex items-center gap-2">
-            <UButton v-if="!isEditing && !isInitialLoading" icon="i-lucide-download" variant="outline" color="neutral"
+            <UButton
+v-if="!isEditing && !isInitialLoading"
+icon="i-lucide-download"
+variant="outline"
+color="neutral"
               @click="handleExport" />
 
-            <UButton v-if="!isEditing && !isInitialLoading" label="Modifier" icon="i-lucide-pencil" color="primary"
+            <UButton
+v-if="!isEditing && !isInitialLoading"
+label="Modifier"
+icon="i-lucide-pencil"
+color="primary"
               @click="isEditing = true" />
           </div>
         </template>
@@ -254,7 +265,10 @@ onMounted(loadData)
         <!-- En-tête Profil -->
         <div class="flex items-start justify-between gap-6">
           <div class="flex items-center gap-6">
-            <UAvatar :src="safeCustomer.avatar_url" size="3xl" :alt="safeCustomer.first_name"
+            <UAvatar
+:src="safeCustomer.avatar_url"
+size="3xl"
+:alt="safeCustomer.first_name"
               class="ring-4 ring-white dark:ring-gray-900 shadow-sm" />
             <div>
               <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
@@ -277,7 +291,9 @@ onMounted(loadData)
           </div>
 
           <!-- Actions rapides -->
-          <UDropdownMenu v-if="!isEditing" :items="[
+          <UDropdownMenu
+v-if="!isEditing"
+:items="[
             [
               {
                 label: 'Activer',
@@ -394,7 +410,12 @@ onMounted(loadData)
           </div>
 
           <!-- Mode Édition -->
-          <UForm v-else :schema="customerFormSchema" :state="state" @submit="onSubmit" class="space-y-5">
+          <UForm
+v-else
+:schema="customerFormSchema"
+:state="state"
+class="space-y-5"
+@submit="onSubmit">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
               <UFormField label="Prénom" name="first_name" required>
                 <UInput v-model="state.first_name" placeholder="Jean" class="w-full" />
@@ -404,7 +425,11 @@ onMounted(loadData)
                 <UInput v-model="state.last_name" placeholder="Dupont" class="w-full" />
               </UFormField>
 
-              <UFormField label="Email" name="email" required class="md:col-span-2">
+              <UFormField
+label="Email"
+name="email"
+required
+class="md:col-span-2">
                 <CustomersEmailEdit v-model="state.email" :disabled="loading" />
               </UFormField>
 
@@ -412,30 +437,57 @@ onMounted(loadData)
                 <CustomersPhoneEdit v-model="state.phone" :disabled="loading" />
               </UFormField>
 
-              <UFormField label="Date de naissance" name="date_of_birth"
+              <UFormField
+label="Date de naissance"
+name="date_of_birth"
                 help="L'utilisateur doit avoir au moins 13 ans">
-                <UInput v-model="state.date_of_birth" type="date"
+                <UInput
+v-model="state.date_of_birth"
+type="date"
                   :max="new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]"
                   class="w-full" />
               </UFormField>
 
               <UFormField label="Genre" name="gender">
-                <USelectMenu v-model="state.gender" :items="genderOptions" value-key="value" label-key="label"
-                  placeholder="Sélectionner" class="w-full" />
+                <USelectMenu
+v-model="state.gender"
+:items="genderOptions"
+value-key="value"
+label-key="label"
+                  placeholder="Sélectionner"
+class="w-full" />
               </UFormField>
 
               <UFormField label="Statut" name="status" class="md:col-span-2">
-                <USelectMenu v-model="state.status" :items="statusOptions" value-key="value" label-key="label" />
+                <USelectMenu
+v-model="state.status"
+:items="statusOptions"
+value-key="value"
+label-key="label" />
               </UFormField>
             </div>
 
             <div class="flex items-center justify-between pt-6 border-t border-gray-100 dark:border-gray-800">
-              <UButton label="Supprimer ce client" color="error" variant="ghost" icon="i-lucide-trash"
+              <UButton
+label="Supprimer ce client"
+color="error"
+variant="ghost"
+icon="i-lucide-trash"
                 @click="handleDelete" />
 
               <div class="flex gap-3">
-                <UButton label="Annuler" color="neutral" variant="outline" @click="onCancel" :disabled="loading" />
-                <UButton label="Enregistrer" type="submit" color="primary" icon="i-lucide-save" :loading="loading" />
+                <UButton
+label="Annuler"
+color="neutral"
+variant="outline"
+:disabled="loading"
+@click="onCancel" />
+                <UButton
+label="Enregistrer"
+type="submit"
+color="primary"
+icon="i-lucide-save"
+:loading="loading" />
               </div>
             </div>
           </UForm>

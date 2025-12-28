@@ -6,14 +6,10 @@ import type {
   ApiResponse,
   LoadingState,
   CouponValidation,
+  PromotionType,
 } from "~/types/promotion";
+import type { ValidationErrors, ApiErrorResponse } from "~/types/validation";
 
-/**
- * Composable de gestion des promotions
- *
- * Fournit toutes les fonctionnalités CRUD et de gestion des promotions
- * avec état partagé, pagination, filtres et gestion d'erreurs
- */
 export const usePromotions = () => {
   const client = useSanctumClient();
   const toast = useToast();
@@ -24,7 +20,10 @@ export const usePromotions = () => {
 
   const promotions = useState<Promotion[]>("promotions", () => []);
   const loading = useState<boolean>("promotions:loading", () => false);
-  const loadingState = useState<LoadingState>("promotions:loadingState", () => "idle");
+  const loadingState = useState<LoadingState>(
+    "promotions:loadingState",
+    () => "idle"
+  );
 
   const pagination = useState("promotions:pagination", () => ({
     pageIndex: 0,
@@ -33,10 +32,20 @@ export const usePromotions = () => {
     totalPages: 0,
   }));
 
+  // Définition des types pour les filtres
+  type FilterStatus =
+    | "all"
+    | "active"
+    | "inactive"
+    | "expired"
+    | "upcoming"
+    | undefined;
+  type FilterType = "all" | PromotionType | undefined;
+
   const filters = useState<PromotionFilters>("promotions:filters", () => ({
     search: "",
     type: undefined,
-    status: 'all',
+    status: "all",
     only_trashed: false,
     with_trashed: false,
     per_page: 15,
@@ -45,9 +54,45 @@ export const usePromotions = () => {
     sort_direction: "desc",
   }));
 
-  const currentPromotion = useState<Promotion | null>("promotions:current", () => null);
-  const statistics = useState<PromotionStatistics | null>("promotions:statistics", () => null);
+  const currentPromotion = useState<Promotion | null>(
+    "promotions:current",
+    () => null
+  );
+  const statistics = useState<PromotionStatistics | null>(
+    "promotions:statistics",
+    () => null
+  );
   const lastError = useState<string | null>("promotions:error", () => null);
+
+  // ============================================================================
+  // UTILITAIRES D'ERREUR
+  // ============================================================================
+
+  /**
+   * Obtient le message d'erreur d'une exception
+   */
+  function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return "Une erreur inconnue est survenue";
+  }
+
+  /**
+   * Obtient le message d'erreur de l'API
+   */
+  function getApiErrorMessage(error: unknown): string {
+    const apiError = error as ApiErrorResponse;
+    return apiError.response?._data?.message || getErrorMessage(error);
+  }
+
+  /**
+   * Obtient les erreurs de validation de l'API
+   */
+  function getValidationErrors(error: unknown): ValidationErrors | null {
+    const apiError = error as ApiErrorResponse;
+    return apiError.response?._data?.errors || null;
+  }
 
   // ============================================================================
   // COMPUTED
@@ -59,7 +104,7 @@ export const usePromotions = () => {
     return Boolean(
       filters.value.search ||
         filters.value.type ||
-        filters.value.status !== 'all' ||
+        filters.value.status !== "all" ||
         filters.value.only_trashed ||
         filters.value.with_trashed
     );
@@ -70,7 +115,7 @@ export const usePromotions = () => {
   );
 
   const activePromotions = computed(() =>
-    promotions.value.filter(p => p.is_active && !p.deleted_at)
+    promotions.value.filter((p) => p.is_active && !p.deleted_at)
   );
 
   // ============================================================================
@@ -83,7 +128,7 @@ export const usePromotions = () => {
     lastError.value = null;
 
     try {
-      const params: Record<string, any> = {
+      const params: Record<string, string | number | boolean | undefined> = {
         page: pagination.value.pageIndex + 1,
         per_page: pagination.value.pageSize,
         search: filters.value.search || undefined,
@@ -117,15 +162,17 @@ export const usePromotions = () => {
       } else {
         throw new Error(response.message || "Erreur lors du chargement");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       loadingState.value = "error";
-      lastError.value = error.message || "Erreur inconnue";
+      lastError.value = getErrorMessage(error);
       promotions.value = [];
       pagination.value.total = 0;
 
+      const errorMessage = getApiErrorMessage(error);
+
       toast.add({
         title: "Erreur de chargement",
-        description: error.response?._data?.message || "Impossible de charger les promotions",
+        description: errorMessage || "Impossible de charger les promotions",
         color: "error",
         icon: "i-lucide-alert-circle",
       });
@@ -149,10 +196,12 @@ export const usePromotions = () => {
       }
 
       return null;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error);
+
       toast.add({
         title: "Erreur",
-        description: error.response?._data?.message || "Impossible de charger la promotion",
+        description: errorMessage || "Impossible de charger la promotion",
         color: "error",
       });
       return null;
@@ -161,7 +210,9 @@ export const usePromotions = () => {
     }
   }
 
-  async function createPromotion(data: FormData | Record<string, any>): Promise<boolean> {
+  async function createPromotion(
+    data: FormData | Record<string, unknown>
+  ): Promise<boolean> {
     loading.value = true;
     lastError.value = null;
 
@@ -174,7 +225,8 @@ export const usePromotions = () => {
       if (response.success) {
         toast.add({
           title: "Promotion créée",
-          description: response.message || "La promotion a été créée avec succès",
+          description:
+            response.message || "La promotion a été créée avec succès",
           color: "success",
           icon: "i-lucide-check-circle",
         });
@@ -184,8 +236,8 @@ export const usePromotions = () => {
       }
 
       return false;
-    } catch (error: any) {
-      lastError.value = error.message;
+    } catch (error: unknown) {
+      lastError.value = getErrorMessage(error);
       handleValidationErrors(error);
       return false;
     } finally {
@@ -193,7 +245,10 @@ export const usePromotions = () => {
     }
   }
 
-  async function updatePromotion(id: string, data: FormData | Record<string, any>): Promise<boolean> {
+  async function updatePromotion(
+    id: string,
+    data: FormData | Record<string, unknown>
+  ): Promise<boolean> {
     loading.value = true;
     lastError.value = null;
 
@@ -213,7 +268,8 @@ export const usePromotions = () => {
       if (response.success) {
         toast.add({
           title: "Promotion mise à jour",
-          description: response.message || "La promotion a été mise à jour avec succès",
+          description:
+            response.message || "La promotion a été mise à jour avec succès",
           color: "success",
           icon: "i-lucide-check-circle",
         });
@@ -223,8 +279,8 @@ export const usePromotions = () => {
       }
 
       return false;
-    } catch (error: any) {
-      lastError.value = error.message;
+    } catch (error: unknown) {
+      lastError.value = getErrorMessage(error);
       handleValidationErrors(error);
       return false;
     } finally {
@@ -254,7 +310,10 @@ export const usePromotions = () => {
 
       if (response.success) {
         const count = ids.length;
-        const message = count === 1 ? "La promotion a été supprimée" : `${count} promotions ont été supprimées`;
+        const message =
+          count === 1
+            ? "La promotion a été supprimée"
+            : `${count} promotions ont été supprimées`;
 
         toast.add({
           title: "Suppression réussie",
@@ -268,10 +327,12 @@ export const usePromotions = () => {
       }
 
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error);
+
       toast.add({
         title: "Erreur de suppression",
-        description: error.response?._data?.message || "Impossible de supprimer",
+        description: errorMessage || "Impossible de supprimer",
         color: "error",
       });
       return false;
@@ -302,7 +363,10 @@ export const usePromotions = () => {
 
       if (response.success) {
         const count = ids.length;
-        const message = count === 1 ? "La promotion a été restaurée" : `${count} promotions ont été restaurées`;
+        const message =
+          count === 1
+            ? "La promotion a été restaurée"
+            : `${count} promotions ont été restaurées`;
 
         toast.add({
           title: "Restauration réussie",
@@ -316,10 +380,12 @@ export const usePromotions = () => {
       }
 
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error);
+
       toast.add({
         title: "Erreur de restauration",
-        description: error.response?._data?.message || "Impossible de restaurer",
+        description: errorMessage || "Impossible de restaurer",
         color: "error",
       });
       return false;
@@ -352,10 +418,12 @@ export const usePromotions = () => {
       }
 
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error);
+
       toast.add({
         title: "Erreur",
-        description: error.response?._data?.message || "Impossible de modifier le statut",
+        description: errorMessage || "Impossible de modifier le statut",
         color: "error",
       });
       return false;
@@ -364,7 +432,10 @@ export const usePromotions = () => {
     }
   }
 
-  async function validateCoupon(code: string, cartAmount?: number): Promise<CouponValidation> {
+  async function validateCoupon(
+    code: string,
+    cartAmount?: number
+  ): Promise<CouponValidation> {
     try {
       const response = await client<ApiResponse<CouponValidation>>(
         "/api/v1/promotions/validate",
@@ -382,10 +453,12 @@ export const usePromotions = () => {
         valid: false,
         error: response.message || "Code invalide",
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error);
+
       return {
         valid: false,
-        error: error.response?._data?.message || "Erreur de validation",
+        error: errorMessage || "Erreur de validation",
       };
     }
   }
@@ -403,8 +476,8 @@ export const usePromotions = () => {
       }
 
       return null;
-    } catch (error) {
-      console.error("Erreur lors du chargement des statistiques:", error);
+    } catch (_error: unknown) {
+      console.error("Erreur lors du chargement des statistiques:", _error);
       return null;
     }
   }
@@ -413,12 +486,12 @@ export const usePromotions = () => {
   // GESTION DES ERREURS
   // ============================================================================
 
-  function handleValidationErrors(error: any): void {
-    const errors = error.response?._data?.errors;
+  function handleValidationErrors(error: unknown): void {
+    const errors = getValidationErrors(error);
 
     if (errors && typeof errors === "object") {
       const errorMessages = Object.entries(errors)
-        .map(([field, messages]) => {
+        .map(([_field, messages]) => {
           const messageArray = Array.isArray(messages) ? messages : [messages];
           return messageArray.join("\n");
         })
@@ -432,9 +505,11 @@ export const usePromotions = () => {
         duration: 6000,
       });
     } else {
+      const errorMessage = getApiErrorMessage(error);
+
       toast.add({
         title: "Erreur",
-        description: error.response?._data?.message || "Une erreur est survenue",
+        description: errorMessage || "Une erreur est survenue",
         color: "error",
         icon: "i-lucide-alert-circle",
       });
@@ -463,14 +538,14 @@ export const usePromotions = () => {
     fetchPromotions();
   }
 
-  function setType(type: string): void {
-    filters.value.type = type === "all" ? undefined : (type as any);
+  function setType(type: FilterType): void {
+    filters.value.type = type === "all" ? undefined : (type as PromotionType);
     pagination.value.pageIndex = 0;
     fetchPromotions();
   }
 
-  function setStatus(status: string): void {
-    filters.value.status = status as any;
+  function setStatus(status: FilterStatus): void {
+    filters.value.status = status;
     pagination.value.pageIndex = 0;
     fetchPromotions();
   }
@@ -486,7 +561,7 @@ export const usePromotions = () => {
     filters.value = {
       search: "",
       type: undefined,
-      status: 'all',
+      status: "all",
       only_trashed: false,
       with_trashed: false,
       per_page: 15,

@@ -5,6 +5,8 @@
  * utilisés pour la gestion des promotions et codes promo.
  */
 
+import type { Customer } from "./customer";
+
 /**
  * Interface représentant une promotion
  */
@@ -47,9 +49,8 @@ export interface PromotionUsage {
   created_at: string;
   updated_at: string;
 
-  // Relations optionnelles
   promotion?: Promotion;
-  customer?: any; // Type Customer à définir selon votre modèle
+  customer?: Customer;
   order?: any; // Type Order à définir selon votre modèle
 }
 

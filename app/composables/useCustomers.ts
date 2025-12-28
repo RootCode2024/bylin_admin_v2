@@ -1,4 +1,5 @@
 import type { Customer, LaravelPaginator, ApiResponse } from "~/types/customer";
+import type { ValidationErrors, ApiErrorResponse } from "~/types/validation";
 
 /**
  * Composable de gestion des clients - Version complète
@@ -23,6 +24,36 @@ export const useCustomers = () => {
   }));
   const { invalidateStatsCache } = useDashboard();
 
+  // ============================================================================
+  // UTILITAIRES D'ERREUR
+  // ============================================================================
+
+  /**
+   * Obtient le message d'erreur d'une exception
+   */
+  function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return "Une erreur inconnue est survenue";
+  }
+
+  /**
+   * Obtient le message d'erreur de l'API
+   */
+  function getApiErrorMessage(error: unknown): string {
+    const apiError = error as ApiErrorResponse;
+    return apiError.response?._data?.message || getErrorMessage(error);
+  }
+
+  /**
+   * Obtient les erreurs de validation de l'API
+   */
+  function getValidationErrors(error: unknown): ValidationErrors | null {
+    const apiError = error as ApiErrorResponse;
+    return apiError.response?._data?.errors || null;
+  }
+
   /**
    * Récupère la liste des clients
    */
@@ -30,7 +61,7 @@ export const useCustomers = () => {
     loading.value = true;
 
     try {
-      const params: Record<string, any> = {
+      const params: Record<string, string | number | boolean | undefined> = {
         page: pagination.value.pageIndex + 1,
         per_page: pagination.value.pageSize,
         search: filters.value.search || undefined,
@@ -50,7 +81,17 @@ export const useCustomers = () => {
         customers.value = response.data.data;
         pagination.value.total = response.data.total;
       }
-    } catch (error: any) {
+    } catch (_error: unknown) {
+
+      const message = getErrorMessage(_error)
+
+      toast.add({
+        title: 'Erreur',
+        description: message || 'Erreur lors du chargement de la liste des clients',
+        color: 'error',
+        duration: 6000
+      })
+
       customers.value = [];
       pagination.value.total = 0;
     } finally {
@@ -67,11 +108,12 @@ export const useCustomers = () => {
         `/api/v1/admin/customers/${id}`
       );
       return response.success ? response.data : null;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error);
+
       toast.add({
         title: "Erreur",
-        description:
-          error.response?._data?.message || "Impossible de charger le client",
+        description: errorMessage || "Impossible de charger le client",
         color: "error",
       });
       return null;
@@ -102,8 +144,8 @@ export const useCustomers = () => {
         return true;
       }
       return false;
-    } catch (error: any) {
-      const errors = error.response?._data?.errors;
+    } catch (error: unknown) {
+      const errors = getValidationErrors(error);
       if (errors) {
         const errorMessages = Object.values(errors).flat().join("\n");
         toast.add({
@@ -139,8 +181,8 @@ export const useCustomers = () => {
         return true;
       }
       return false;
-    } catch (error: any) {
-      const errors = error.response?._data?.errors;
+    } catch (error: unknown) {
+      const errors = getValidationErrors(error);
       if (errors) {
         const errorMessages = Object.values(errors).flat().join("\n");
         toast.add({
@@ -175,7 +217,16 @@ export const useCustomers = () => {
         return true;
       }
       return false;
-    } catch (error) {
+    } catch (_error: unknown) {
+      const message = getErrorMessage(_error);
+
+        toast.add({
+          title: "Erreur",
+          description:
+            message || "Erreur lors de la mis à jour du status",
+          color: "error",
+          duration: 6000,
+        });
       return false;
     } finally {
       loading.value = false;
@@ -209,7 +260,15 @@ export const useCustomers = () => {
         return true;
       }
       return false;
-    } catch (error) {
+    } catch (_error: unknown) {
+      const message = getErrorMessage(_error);
+
+      toast.add({
+        title: "Erreur",
+        description: message || "Erreur lors de la suppression",
+        color: "error",
+        duration: 6000,
+      });
       return false;
     } finally {
       loading.value = false;
@@ -248,7 +307,16 @@ export const useCustomers = () => {
         return true;
       }
       return false;
-    } catch (error) {
+    } catch (_error: unknown) {
+      const message = getErrorMessage(_error);
+
+      toast.add({
+        title: "Erreur",
+        description:
+          message || "Erreur lors de la restauration",
+        color: "error",
+        duration: 6000,
+      });
       return false;
     } finally {
       loading.value = false;
@@ -287,11 +355,28 @@ export const useCustomers = () => {
         return true;
       }
       return false;
-    } catch (error) {
+    } catch (_error: unknown) {
+      const message = getErrorMessage(_error);
+
+      toast.add({
+        title: "Erreur",
+        description:
+          message || "Erreur lors de la suppression definitive",
+        color: "error",
+        duration: 6000,
+      });
       return false;
     } finally {
       loading.value = false;
     }
+  }
+
+  // Type pour les données d'export
+  interface ExportData {
+    format: "xlsx" | "csv" | "pdf";
+    status?: string;
+    ids?: string[];
+    search?: string;
   }
 
   /**
@@ -304,12 +389,7 @@ export const useCustomers = () => {
     loading.value = true;
 
     try {
-      const body: {
-        format: "xlsx" | "csv" | "pdf";
-        status?: string;
-        ids?: string[];
-        search?: string;
-      } = {
+      const body: ExportData = {
         format,
         status:
           filters.value.status !== "all" ? filters.value.status : undefined,
@@ -352,8 +432,8 @@ export const useCustomers = () => {
         color: "success",
         icon: "i-lucide-download",
       });
-    } catch (error) {
-      console.error(error);
+    } catch (_error: unknown) {
+      console.error(_error);
 
       toast.add({
         title: "Erreur d'export",
@@ -384,7 +464,16 @@ export const useCustomers = () => {
       >("/api/v1/admin/customers/statistics");
 
       return response.success ? response.data : null;
-    } catch (error) {
+    } catch (_error: unknown) {
+      const message = getErrorMessage(_error);
+
+      toast.add({
+        title: "Erreur",
+        description:
+          message || "Erreur lors du chargement des stats",
+        color: "error",
+        duration: 6000,
+      });
       return null;
     }
   }

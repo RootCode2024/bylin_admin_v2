@@ -52,18 +52,25 @@ async function onExport() {
         <div class="space-y-3 mb-6">
           <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Format d'export</label>
           <div class="space-y-2">
-            <div v-for="option in formatOptions" :key="option.value" @click="format = option.value" :class="[
+            <div
+v-for="option in formatOptions"
+:key="option.value"
+:class="[
               'flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
               format === option.value
                 ? 'border-primary-500 bg-primary-50 dark:bg-primary-950/50'
                 : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
-            ]">
-              <UIcon :name="option.icon" :class="[
+            ]"
+@click="format = option.value">
+              <UIcon
+:name="option.icon"
+:class="[
                 'w-5 h-5 mt-0.5',
                 format === option.value ? 'text-primary-600' : 'text-gray-400'
               ]" />
               <div class="flex-1">
-                <p :class="[
+                <p
+:class="[
                   'font-medium',
                   format === option.value ? 'text-primary-700 dark:text-primary-400' : 'text-gray-900 dark:text-white'
                 ]">
@@ -79,8 +86,18 @@ async function onExport() {
         </div>
 
         <div class="flex items-center justify-end gap-3">
-          <UButton label="Annuler" color="neutral" variant="ghost" @click="close" :disabled="loading" />
-          <UButton label="Télécharger" color="primary" icon="i-lucide-download" :loading="loading" @click="onExport" />
+          <UButton
+label="Annuler"
+color="neutral"
+variant="ghost"
+:disabled="loading"
+@click="close" />
+          <UButton
+label="Télécharger"
+color="primary"
+icon="i-lucide-download"
+:loading="loading"
+@click="onExport" />
         </div>
       </div>
     </template>

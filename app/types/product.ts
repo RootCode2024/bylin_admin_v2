@@ -96,7 +96,7 @@ export interface Product {
   slug: string;
   sku: string;
   short_description?: string | null;
-  description?: string | null;
+  description?: string | null | undefined;
 
   // Prix
   price: number;
@@ -305,7 +305,7 @@ export interface ProductFormData {
   variations: VariationFormData[];
 
   // Media
-  images?: File[]; // Nouveaux fichiers uploadés
+  images?: File[];
   images_to_delete?: number[]; // IDs des médias à supprimer
 }
 

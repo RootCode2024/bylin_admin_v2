@@ -12,16 +12,13 @@ const props = defineProps<{
   ids: string[]
 }>()
 
-// Événements émis par le composant
 const emit = defineEmits<{
   'update:open': [boolean]
   'success': []
 }>()
 
-// Composables
 const { deleteCategories, restoreCategories, forceDeleteCategories, loading, categories } = useCategories()
 
-// État du modal (v-model)
 const isOpen = computed({
   get: () => props.open,
   set: (value) => emit('update:open', value)
@@ -94,7 +91,6 @@ const isForceDelete = computed({
  */
 const buttonLabel = computed(() => {
   const count = props.ids.length
-  const suffix = count > 1 ? 's' : ''
 
   switch (actionType.value) {
     case 'restore':
@@ -148,7 +144,9 @@ watch(isOpen, (value) => {
 </script>
 
 <template>
-  <UModal v-model:open="isOpen" :title="hasTrashed ? 'Restaurer la catégorie' : 'Supprimer la catégorie'"
+  <UModal
+v-model:open="isOpen"
+:title="hasTrashed ? 'Restaurer la catégorie' : 'Supprimer la catégorie'"
     :ui="{ body: 'min-w-md' }">
     <template #content>
       <div class="p-6 space-y-4">
@@ -181,7 +179,8 @@ watch(isOpen, (value) => {
         </div>
 
         <!-- Liste des catégories sélectionnées -->
-        <div v-if="selectedCategories.length > 0 && selectedCategories.length <= 5"
+        <div
+v-if="selectedCategories.length > 0 && selectedCategories.length <= 5"
           class="border border-gray-200 dark:border-gray-800 rounded-lg divide-y divide-gray-200 dark:divide-gray-800">
           <div v-for="category in selectedCategories" :key="category.id" class="p-3 flex items-center justify-between">
             <div class="flex items-center gap-2 flex-1 min-w-0">
@@ -196,11 +195,18 @@ watch(isOpen, (value) => {
               </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-              <UBadge v-if="category.children_count && category.children_count > 0" variant="subtle" color="secondary"
+              <UBadge
+v-if="category.children_count && category.children_count > 0"
+variant="subtle"
+color="secondary"
                 size="xs">
                 {{ category.children_count }} enfant{{ category.children_count > 1 ? 's' : '' }}
               </UBadge>
-              <UBadge v-if="category.products_count > 0" variant="subtle" color="primary" size="xs">
+              <UBadge
+v-if="category.products_count > 0"
+variant="subtle"
+color="primary"
+size="xs">
                 {{ category.products_count }} produit{{ category.products_count > 1 ? 's' : '' }}
               </UBadge>
             </div>
@@ -208,7 +214,8 @@ watch(isOpen, (value) => {
         </div>
 
         <!-- Message si plus de 5 catégories -->
-        <div v-else-if="selectedCategories.length > 5"
+        <div
+v-else-if="selectedCategories.length > 5"
           class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-center">
           <p class="text-sm text-gray-600 dark:text-gray-400">
             {{ selectedCategories.length }} catégories sélectionnées
@@ -216,7 +223,11 @@ watch(isOpen, (value) => {
         </div>
 
         <!-- Avertissement -->
-        <UAlert v-if="warningMessage && !hasTrashed" color="warning" variant="subtle" icon="i-lucide-alert-triangle"
+        <UAlert
+v-if="warningMessage && !hasTrashed"
+color="warning"
+variant="subtle"
+icon="i-lucide-alert-triangle"
           :title="warningMessage" />
 
         <!-- Option de suppression définitive pour les catégories supprimées -->
@@ -236,9 +247,18 @@ watch(isOpen, (value) => {
 
         <!-- Actions -->
         <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
-          <UButton label="Annuler" color="neutral" variant="ghost" @click="isOpen = false" :disabled="loading" />
-          <UButton :label="buttonLabel" :color="buttonColor" @click="handleDelete" :loading="loading"
-            :icon="actionType === 'force' ? 'i-lucide-trash-2' : actionType === 'restore' ? 'i-lucide-refresh-cw' : 'i-lucide-trash'" />
+          <UButton
+label="Annuler"
+color="neutral"
+variant="ghost"
+:disabled="loading"
+@click="isOpen = false" />
+          <UButton
+:label="buttonLabel"
+:color="buttonColor"
+:loading="loading"
+:icon="actionType === 'force' ? 'i-lucide-trash-2' : actionType === 'restore' ? 'i-lucide-refresh-cw' : 'i-lucide-trash'"
+            @click="handleDelete" />
         </div>
       </div>
     </template>

@@ -19,20 +19,17 @@ const UBadge = resolveComponent('UBadge')
 const UCheckbox = resolveComponent('UCheckbox')
 const UButton = resolveComponent('UButton')
 const UDropdownMenu = resolveComponent('UDropdownMenu')
-const UTooltip = resolveComponent('UTooltip')
 const UIcon = resolveComponent('UIcon')
 
 // ========================================
 // Composables
 // ========================================
-const toast = useToast()
 const router = useRouter()
 
 const {
   state,
   isLoading,
   fetchCollections,
-  deleteCollection,
   deleteCollections,
   toggleActive,
   setSearch,
@@ -90,7 +87,7 @@ const columns: TableColumn<Collection>[] = [
     header: 'Collection',
     cell: ({ row }) => {
       const collection = row.original
-      
+
       const coverImage = collection.cover_image_url
 
       return h('div', {
@@ -219,15 +216,6 @@ function openDeleteModal(ids: string[]) {
   isDeleteModalOpen.value = true
 }
 
-async function handleDeleteConfirm() {
-  const success = await deleteCollections(idsToDelete.value)
-
-  if (success) {
-    isDeleteModalOpen.value = false
-    rowSelection.value = {}
-  }
-}
-
 /**
  * Réinitialise tous les filtres
  */
@@ -332,7 +320,7 @@ onMounted(() => {
             class="w-full sm:w-72"
             :ui="{ trailing: 'pointer-events-auto' }"
           >
-            <template #trailing v-if="localSearch">
+            <template v-if="localSearch" #trailing>
               <UButton
                 color="neutral"
                 variant="link"
@@ -468,9 +456,13 @@ onMounted(() => {
   <!-- Modales -->
   <CollectionCreateModal v-model:open="isCreateModalOpen" @created="handleCollectionCreated" />
 
-  <CollectionEditModal v-model:open="isEditModalOpen" :collection="selectedCollection"
+  <CollectionEditModal
+v-model:open="isEditModalOpen"
+:collection="selectedCollection"
     @updated="handleCollectionUpdated" />
 
-  <CollectionDeleteModal v-model:open="isDeleteModalOpen" :collection-ids="idsToDelete"
+  <CollectionDeleteModal
+v-model:open="isDeleteModalOpen"
+:collection-ids="idsToDelete"
     @deleted="handleCollectionDeleted" />
 </template>
