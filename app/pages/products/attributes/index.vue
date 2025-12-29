@@ -3,7 +3,7 @@ import type { TableColumn } from '@nuxt/ui'
 import { upperFirst } from 'scule'
 import type { Attribute } from '~/types/attribute'
 import type { Table as TanstackTable } from '@tanstack/table-core'
-import { getTypeLabel, getTypeIcon, getTypeColor, createValuesPreview } from '~/utils/attribute'
+import { getAttributeTypeLabel, getAttributeTypeIcon, getAttributeTypeColor, createValuesPreview } from '~/utils/attribute'
 
 definePageMeta({
   layout: 'default',
@@ -92,7 +92,7 @@ const columns: TableColumn<Attribute>[] = [
         onClick: () => openEditModal(attr)
       }, [
         h(UAvatar, {
-          icon: getTypeIcon(attr.type),
+          icon: getAttributeTypeIcon(attr.type),
           size: 'md',
           class: 'ring-1 ring-gray-200 dark:ring-gray-800 transition-transform group-hover:scale-105'
         }),
@@ -119,9 +119,9 @@ const columns: TableColumn<Attribute>[] = [
       const type = row.original.type
       return h(UBadge, {
         variant: 'subtle',
-        color: getTypeColor(type),
+        color: getAttributeTypeColor(type),
         size: 'sm'
-      }, () => getTypeLabel(type))
+      }, () => getAttributeTypeLabel(type))
     }
   },
   {

@@ -1,12 +1,4 @@
 <script setup lang="ts">
-/**
- * Composant de suppression de catégorie(s)
- *
- * Modal de confirmation pour supprimer une ou plusieurs catégories
- * Gère la suppression soft delete, restauration et suppression définitive
- */
-
-// Props du composant
 const props = defineProps<{
   open: boolean
   ids: string[]
