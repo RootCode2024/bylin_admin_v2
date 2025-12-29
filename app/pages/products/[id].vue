@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ProductFormData } from '~/types/product'
+import type { ProductFormData, VariationFormData } from '~/types/product'
 
 definePageMeta({
   layout: 'default',
@@ -79,11 +79,11 @@ async function handleSave() {
   isSaving.value = true
 
   try {
-    const newImageFiles = productFormStore.images
-      .filter(img => img.isNew && img.file)
+    const newImageFiles: File[] = productFormStore.images
       .map(img => img.file)
+      .filter((file): file is File => !!file)
 
-    const dataToSend: any = {
+    const dataToSend: Partial<ProductFormData> = {
       ...productFormStore.formData,
       images: newImageFiles,
       images_to_delete: productFormStore.imagesToDelete,
@@ -105,26 +105,28 @@ async function handleSave() {
       delete dataToSend.preorder_limit
     }
 
-    if (dataToSend.is_variable && dataToSend.variations.length > 0) {
-      dataToSend.variations = dataToSend.variations.map((variation: any) => {
-        const cleanVariation = {
-          ...variation,
-          variation_name: variation.variation_name || 'Nouvelle variation',
-          price: Math.max(0.01, variation.price || 0),
-          stock_quantity: Math.max(0, variation.stock_quantity || 0),
-          stock_status: variation.stock_status || (variation.stock_quantity > 0 ? 'in_stock' : 'out_of_stock'),
-          is_active: variation.is_active !== false,
-          attributes: variation.attributes || {}
+    if (dataToSend.is_variable && dataToSend.variations &&dataToSend.variations.length > 0) {
+      dataToSend.variations = dataToSend.variations.map(
+        (variation: VariationFormData) => {
+          const cleanVariation: VariationFormData = {
+            ...variation,
+            variation_name: variation.variation_name || 'Nouvelle variation',
+            price: Math.max(0.01, variation.price || 0),
+            stock_quantity: Math.max(0, variation.stock_quantity || 0),
+            stock_status: variation.stock_status || (variation.stock_quantity > 0 ? 'in_stock' : 'out_of_stock'),
+            is_active: variation.is_active !== false,
+            attributes: variation.attributes || {}
+          }
+
+          // Nettoyer
+          if (!cleanVariation.compare_price || cleanVariation.compare_price <= 0) delete cleanVariation.compare_price
+          if (!cleanVariation.cost_price || cleanVariation.cost_price <= 0) delete cleanVariation.cost_price
+          if (!cleanVariation.sku) delete cleanVariation.sku
+          if (!cleanVariation.barcode) delete cleanVariation.barcode
+
+          return cleanVariation
         }
-
-        // Nettoyer
-        if (!cleanVariation.compare_price || cleanVariation.compare_price <= 0) delete cleanVariation.compare_price
-        if (!cleanVariation.cost_price || cleanVariation.cost_price <= 0) delete cleanVariation.cost_price
-        if (!cleanVariation.sku) delete cleanVariation.sku
-        if (!cleanVariation.barcode) delete cleanVariation.barcode
-
-        return cleanVariation
-      })
+      )
     } else {
       dataToSend.variations = []
     }
@@ -143,25 +145,31 @@ async function handleSave() {
 
       await loadProduct()
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erreur de sauvegarde:', error)
 
-    if (error.response?.data?.errors) {
-      logValidationErrors(error.response.data.errors)
+    const validationErrors =
+      typeof error === "object" && error !== null && "response" in error && (error as any).response?._data?.errors
+        ? (error as any).response._data.errors as Record<string, string[]>
+        : null
 
-      const errors = error.response.data.errors
-      Object.keys(errors).forEach(field => {
+    if (validationErrors) {
+      logValidationErrors(validationErrors)
+
+      Object.keys(validationErrors).forEach(field => {
+        const messages = validationErrors[field]
         toast.add({
           title: `Erreur: ${formatFieldName(field)}`,
-          description: Array.isArray(errors[field]) ? errors[field][0] : errors[field],
+          description: Array.isArray(messages) ? messages[0] : messages,
           color: 'error',
           duration: 5000
         })
       })
     } else {
+      const message = error instanceof Error ? error.message : 'Une erreur est survenue'
       toast.add({
         title: 'Erreur de sauvegarde',
-        description: error.message || 'Une erreur est survenue',
+        description: message,
         color: 'error'
       })
     }

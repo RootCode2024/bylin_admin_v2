@@ -87,11 +87,13 @@ export function requiresValues(type: AttributeType): boolean {
 
 /**
  * Vérifie si un attribut peut être supprimé
- * @note Logique métier : un attribut ne peut être supprimé s'il est utilisé par des produits
  */
 export function canDelete(attribute: Attribute): boolean {
-  // Cette info devrait venir de l'API
-  return true; // À adapter selon la logique métier
+  if (attribute.values && attribute.values.length > 0) return false;
+
+  // if ((attribute.products_count ?? 0) > 0) return false;
+
+  return true;
 }
 
 /* =========================================================================

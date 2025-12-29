@@ -1,6 +1,14 @@
 import type { Product } from "~/types/product";
 import type { ApiResponse } from "~/types/collection";
 
+
+export interface ProductsStatistics {
+  total_value: number;
+  active_products: number;
+  out_of_stock: number;
+  total_stock: number;
+}
+
 export const useCollectionProducts = () => {
   const client = useSanctumClient();
   const toast = useToast();
@@ -225,13 +233,6 @@ export const useCollectionProducts = () => {
       });
       return false;
     }
-  }
-
-  interface ProductsStatistics {
-    total?: number;
-    active?: number;
-    out_of_stock?: number;
-    [key: string]: unknown;
   }
 
   /**

@@ -412,7 +412,7 @@ label="Exporter"
         <UTable
 ref="table"
 v-model:row-selection="rowSelection"
-:data="customers as any"
+:data="customers as Customer[]"
 :columns="columns"
           :loading="loading"
 class="flex-1">

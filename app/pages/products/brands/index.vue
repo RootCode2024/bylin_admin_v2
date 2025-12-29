@@ -364,7 +364,7 @@ icon="i-lucide-trash-2"
         <UTable
 ref="table"
 v-model:row-selection="rowSelection"
-:data="brands as any"
+:data="brands as Brand[]"
 :columns="columns"
           :loading="loading"
 class="flex-1">

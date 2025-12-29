@@ -15,6 +15,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  modelValue: null,
   label: 'Image',
   description: '',
   currentImageUrl: null,

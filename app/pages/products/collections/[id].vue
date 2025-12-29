@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Product } from '~/types/product'
+import type { ProductsStatistics } from '~/composables/useCollectionProducts'
 
 definePageMeta({
   layout: 'default',
@@ -31,7 +32,7 @@ const collectionId = route.params.id as string
 const isEditModalOpen = ref(false)
 const isDeleteModalOpen = ref(false)
 const isAddProductsModalOpen = ref(false)
-const productStats = ref<any>(null)
+const productStats = ref<ProductsStatistics | null>(null)
 const loadingStats = ref(false)
 const isConfirmRemoveOpen = ref(false)
 const productToRemove = ref<Product | null>(null)
@@ -335,7 +336,7 @@ onMounted(() => {
 
                 <div class="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                   <p class="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                    {{ formatPriceXOF(productStats.total_value) }}
+                    {{ productStats ? formatPriceXOF(productStats.total_value) : 0 }}
                   </p>
                   <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Valeur totale</p>
                 </div>

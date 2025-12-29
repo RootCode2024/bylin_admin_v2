@@ -30,7 +30,6 @@ const {
   state,
   isLoading,
   fetchCollections,
-  deleteCollections,
   toggleActive,
   setSearch,
   setStatusFilter,

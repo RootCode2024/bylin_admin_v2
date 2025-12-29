@@ -232,8 +232,17 @@ const columns: TableColumn<Category>[] = [
 // ========================================
 // Actions
 // ========================================
+
+interface DropdownItem {
+  label: string
+  icon?: string
+  color?: 'error' | 'primary' | 'neutral' | 'secondary' | 'info' | string
+  disabled?: boolean
+  onSelect: () => void
+}
+
 function getRowItems(category: Category) {
-  const items: any[] = [
+  const items: DropdownItem[][] = [
     [
       {
         label: 'Modifier',
@@ -349,11 +358,7 @@ const visibleColumns = computed(() =>
 // ========================================
 watchDebounced(
   localSearch,
-  (val) => {
-    if (val !== undefined) {
-      setSearch(val)
-    }
-  },
+  (val: string) => setSearch(val),
   { debounce: 400 }
 )
 
@@ -362,19 +367,24 @@ watch(localLevel, (val) => setLevel(val))
 watch(showTrashed, (val) => setTrashedFilter(false, val))
 
 onMounted(() => {
-  // Synchroniser les filtres locaux avec les filtres du composable
   if (filters.value.is_active === true) localStatus.value = 'active'
   else if (filters.value.is_active === false) localStatus.value = 'inactive'
 
   if (filters.value.level !== undefined) {
-    localLevel.value = filters.value.level.toString() as any
+    const levelStr = filters.value.level.toString()
+    if (['0', '1', '2', '3'].includes(levelStr)) {
+      localLevel.value = levelStr as '0' | '1' | '2' | '3'
+    } else {
+      localLevel.value = 'all'
+    }
   }
 
-  // Charger les catégories si aucun filtre n'est actif
+  // Charge les catégories si aucun filtre n'est actif
   if (localStatus.value === 'all' && localLevel.value === 'all' && !localSearch.value) {
     fetchCategories()
   }
 })
+
 </script>
 
 <template>
@@ -475,7 +485,7 @@ onMounted(() => {
         <UTable
           ref="table"
           v-model:row-selection="rowSelection"
-          :data="categories as any"
+          :data="categories as Category[]"
           :columns="columns"
           :loading="loading"
           class="flex-1"

@@ -1,30 +1,30 @@
 /* =========================================================================
- * 🔧 HELPERS COMMUNS
- * Fonctions utilitaires partagées à travers toute l'application
+ * Helpers communs
+ * Fonctions utilitaires utilisées dans toute l'application
  * ========================================================================= */
 
 /* -------------------------------------------------------
- * 🎲 RANDOM & GÉNÉRATION
+ * Random et génération
  * ----------------------------------------------------- */
 
 /**
- * Génère un entier aléatoire entre min et max (inclus)
+ * Retourne un entier aléatoire entre min et max inclus.
  */
 export function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 /**
- * Sélectionne un élément aléatoire dans un tableau
+ * Sélectionne un élément aléatoire dans un tableau.
  */
 export function randomFrom<T>(array: T[]): T {
   return array[Math.floor(Math.random() * array.length)]!;
 }
 
 /**
- * Génère un code alphanumérique aléatoire
- * @param prefix - Préfixe optionnel (sera en majuscule)
- * @param length - Longueur totale du code
+ * Génère un code alphanumérique aléatoire.
+ * @param prefix - Préfixe optionnel, sera mis en majuscules
+ * @param length - Longueur totale du code (par défaut 8)
  */
 export function generateRandomCode(
   prefix: string = "",
@@ -42,8 +42,8 @@ export function generateRandomCode(
 }
 
 /**
- * Génère un slug à partir d'un texte
- * Exemple: "Ceci est Un Test" → "ceci_est_un_test"
+ * Génère un slug à partir d'une chaîne de caractères.
+ * Exemple : "Ceci est Un Test" → "ceci_est_un_test"
  */
 export function generateSlug(text: string): string {
   return text
@@ -55,19 +55,18 @@ export function generateSlug(text: string): string {
 }
 
 /* -------------------------------------------------------
- * 🎨 COULEURS
+ * Couleurs
  * ----------------------------------------------------- */
 
 /**
- * Vérifie si une chaîne est une couleur hexadécimale valide
- * Exemple: "#FF5733" → true, "FF5733" → false
+ * Vérifie si une chaîne représente une couleur hexadécimale valide.
  */
 export function isValidHexColor(color: string): boolean {
   return /^#[0-9A-F]{6}$/i.test(color);
 }
 
 /**
- * Normalise une couleur hexadécimale (ajoute # si manquant, uppercase)
+ * Normalise une couleur hexadécimale : ajoute "#" si nécessaire et met en majuscules.
  */
 export function normalizeHexColor(color: string): string {
   const cleaned = color.trim().toUpperCase();
@@ -75,7 +74,7 @@ export function normalizeHexColor(color: string): string {
 }
 
 /**
- * Génère une couleur hexadécimale aléatoire
+ * Génère une couleur hexadécimale aléatoire.
  */
 export function randomColor(): string {
   return (
@@ -88,7 +87,7 @@ export function randomColor(): string {
 }
 
 /**
- * Extrait les codes couleur hexadécimaux valides d'un tableau d'objets
+ * Extrait tous les codes couleur valides d'un tableau d'objets.
  */
 export function extractValidColors<T extends { color_code?: string | null }>(
   items: T[]
@@ -99,13 +98,11 @@ export function extractValidColors<T extends { color_code?: string | null }>(
 }
 
 /* -------------------------------------------------------
- * 📏 VALIDATION & FORMAT
+ * Validation et format
  * ----------------------------------------------------- */
 
 /**
- * Vérifie si un code est valide (alphanumeric + underscore)
- * @param minLength - Longueur minimale (défaut: 2)
- * @param maxLength - Longueur maximale (défaut: 100)
+ * Vérifie si un code est alphanumérique et respecte les limites de longueur.
  */
 export function isValidCode(
   code: string,
@@ -120,15 +117,15 @@ export function isValidCode(
 }
 
 /**
- * Normalise un code (uppercase, trim, supprime espaces)
+ * Normalise un code : supprime les espaces et met en majuscules.
  */
 export function normalizeCode(code: string): string {
   return code.trim().toUpperCase().replace(/\s+/g, "");
 }
 
 /**
- * Formate une taille de fichier en unité lisible
- * Exemple: 1536000 → "1.46 Mo"
+ * Formate une taille de fichier en unité lisible.
+ * Exemple : 1536000 → "1.46 Mo"
  */
 export function formatFileSize(bytes: number, decimals: number = 2): string {
   if (bytes === 0) return "0 Octets";
@@ -144,25 +141,20 @@ export function formatFileSize(bytes: number, decimals: number = 2): string {
 }
 
 /* -------------------------------------------------------
- * 💰 PRIX (FCFA/XOF)
+ * Prix (FCFA/XOF)
  * ----------------------------------------------------- */
 
 /**
- * Formate un montant en Franc CFA
- * Exemple: 15000 → "15 000 FCFA"
+ * Formate un montant en Franc CFA.
  */
 export function formatPriceXOF(
   amount: number | string,
-  options?: {
-    withSymbol?: boolean;
-    locale?: string;
-  }
+  options?: { withSymbol?: boolean; locale?: string }
 ): string {
   const value = Number(amount);
   if (Number.isNaN(value)) return "—";
 
   const { withSymbol = true, locale = "fr-FR" } = options ?? {};
-
   const formatted = new Intl.NumberFormat(locale, {
     maximumFractionDigits: 0,
   }).format(value);
@@ -171,8 +163,7 @@ export function formatPriceXOF(
 }
 
 /**
- * Calcule et formate un prix avec réduction
- * Exemple: (20000, 25) → "15 000 FCFA"
+ * Calcule et formate un prix avec une remise.
  */
 export function formatPriceWithDiscount(
   price: number,
@@ -185,12 +176,12 @@ export function formatPriceWithDiscount(
 }
 
 /* -------------------------------------------------------
- * 📅 DATES & TEMPS
+ * Dates et temps
  * ----------------------------------------------------- */
 
 /**
- * Formate une date en français
- * Exemple: "2025-01-05" → "5 janvier 2025"
+ * Formate une date en français.
+ * Exemple : "2025-01-05" → "5 janvier 2025"
  */
 export function formatDateFR(
   date: Date | string | number,
@@ -208,8 +199,7 @@ export function formatDateFR(
 }
 
 /**
- * Formate une date avec heure en français
- * Exemple: "2025-01-05T14:30" → "5 janvier 2025 à 14:30"
+ * Formate une date et l'heure en français.
  */
 export function formatDateTimeFR(date: Date | string | number): string {
   const parsed = new Date(date);
@@ -222,18 +212,17 @@ export function formatDateTimeFR(date: Date | string | number): string {
 }
 
 /**
- * Formate une date courte pour les formulaires
- * Exemple: Date → "2025-01-05"
+ * Formate une date pour un champ de formulaire (YYYY-MM-DD).
  */
 export function formatDateInput(date: Date | string | number): string {
   const parsed = new Date(date);
   if (Number.isNaN(parsed.getTime())) return "";
 
-  return parsed.toISOString().split("T")[0] || "";
+  return parsed.toISOString().split("T")[0] ?? "";
 }
 
 /**
- * Calcule les jours restants jusqu'à une date
+ * Calcule le nombre de jours restants jusqu'à une date donnée.
  */
 export function getDaysRemaining(dateString: string | null): number | null {
   if (!dateString) return null;
@@ -247,14 +236,11 @@ export function getDaysRemaining(dateString: string | null): number | null {
 }
 
 /* -------------------------------------------------------
- * 📊 COMPTEURS & LABELS
+ * Compteurs et labels
  * ----------------------------------------------------- */
 
 /**
- * Génère un label de comptage avec pluralisation
- * @param count - Nombre d'éléments
- * @param singular - Label au singulier
- * @param plural - Label au pluriel (optionnel, ajoute "s" par défaut)
+ * Retourne un label en fonction du nombre d'éléments avec gestion du pluriel.
  */
 export function getCountLabel(
   count: number,
@@ -267,11 +253,11 @@ export function getCountLabel(
 }
 
 /* -------------------------------------------------------
- * 🔍 RECHERCHE & FILTRAGE
+ * Recherche et filtrage
  * ----------------------------------------------------- */
 
 /**
- * Normalise une chaîne pour la recherche (lowercase, sans accents)
+ * Normalise une chaîne pour la recherche (minuscules et sans accents).
  */
 export function normalizeForSearch(text: string): string {
   return text
@@ -282,7 +268,7 @@ export function normalizeForSearch(text: string): string {
 }
 
 /**
- * Vérifie si une chaîne contient un terme de recherche
+ * Vérifie si une chaîne contient un terme de recherche.
  */
 export function matchesSearch(text: string, search: string): boolean {
   if (!search.trim()) return true;
@@ -290,11 +276,11 @@ export function matchesSearch(text: string, search: string): boolean {
 }
 
 /* -------------------------------------------------------
- * 📋 TABLEAUX & COLLECTIONS
+ * Tableaux et collections
  * ----------------------------------------------------- */
 
 /**
- * Trie un tableau par une clé numérique
+ * Trie un tableau par une clé numérique.
  */
 export function sortByNumber<T>(
   items: T[],
@@ -309,7 +295,7 @@ export function sortByNumber<T>(
 }
 
 /**
- * Trie un tableau par une clé string (ordre alphabétique)
+ * Trie un tableau par une clé string (ordre alphabétique).
  */
 export function sortByString<T>(
   items: T[],
@@ -325,7 +311,7 @@ export function sortByString<T>(
 }
 
 /**
- * Trie un tableau par date
+ * Trie un tableau par date.
  */
 export function sortByDate<T>(
   items: T[],
@@ -333,14 +319,14 @@ export function sortByDate<T>(
   order: "asc" | "desc" = "desc"
 ): T[] {
   return [...items].sort((a, b) => {
-    const dateA = new Date(a[key] as any).getTime();
-    const dateB = new Date(b[key] as any).getTime();
+    const dateA = new Date(String(a[key])).getTime();
+    const dateB = new Date(String(b[key])).getTime();
     return order === "desc" ? dateB - dateA : dateA - dateB;
   });
 }
 
 /**
- * Groupe un tableau d'objets par une clé
+ * Groupe un tableau d'objets par une clé.
  */
 export function groupBy<T>(items: T[], key: keyof T): Record<string, T[]> {
   return items.reduce((acc, item) => {
@@ -354,11 +340,11 @@ export function groupBy<T>(items: T[], key: keyof T): Record<string, T[]> {
 }
 
 /* -------------------------------------------------------
- * 🔗 URL & WEB
+ * URL et Web
  * ----------------------------------------------------- */
 
 /**
- * Construit une URL complète avec protocole
+ * Construit une URL complète avec protocole.
  */
 export function buildWebsiteUrl(
   domain: string,
@@ -369,7 +355,7 @@ export function buildWebsiteUrl(
 }
 
 /**
- * Extrait le domaine d'une URL
+ * Extrait le domaine principal d'une URL.
  */
 export function extractDomain(url: string): string {
   try {
@@ -381,7 +367,7 @@ export function extractDomain(url: string): string {
 }
 
 /* -------------------------------------------------------
- * 🎯 OPTIONS POUR SELECT/DROPDOWN
+ * Options pour Select/Dropdown
  * ----------------------------------------------------- */
 
 export interface SelectOption<T = string> {
@@ -393,9 +379,9 @@ export interface SelectOption<T = string> {
 }
 
 /**
- * Transforme un tableau d'objets en options pour select
+ * Transforme un tableau d'objets en options pour un composant select.
  */
-export function toSelectOptions<T extends Record<string, any>>(
+export function toSelectOptions<T extends Record<string, unknown>>(
   items: T[],
   valueKey: keyof T,
   labelKey: keyof T,
@@ -404,16 +390,16 @@ export function toSelectOptions<T extends Record<string, any>>(
   return items.map((item) => ({
     value: String(item[valueKey]),
     label: String(item[labelKey]),
-    disabled: disabledKey ? !item[disabledKey] : false,
+    disabled: disabledKey ? Boolean(item[disabledKey]) : false,
   }));
 }
 
 /* -------------------------------------------------------
- * 🖼️ IMAGES
+ * Images
  * ----------------------------------------------------- */
 
 export interface ImageUploadConfig {
-  maxFileSize: number; // en octets
+  maxFileSize: number;
   minDimensions: { width: number; height: number };
   maxDimensions: { width: number; height: number };
   acceptedTypes: string[];
@@ -427,7 +413,7 @@ export const DEFAULT_IMAGE_CONFIG: ImageUploadConfig = {
 };
 
 /**
- * Valide un fichier image selon une configuration
+ * Valide un fichier image selon une configuration donnée.
  */
 export function validateImageFile(
   file: File,
