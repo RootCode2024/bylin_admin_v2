@@ -12,7 +12,6 @@ const emit = defineEmits<{
   'created': []
 }>()
 
-// ✅ CORRECTION: Utiliser isLoading au lieu de loading
 const { createCollection, isLoading } = useCollections()
 
 // ========================================
@@ -85,7 +84,6 @@ function removeImage(): void {
  */
 async function onSubmit(event: FormSubmitEvent<CollectionFormSchema>): Promise<void> {
   try {
-    // ✅ CORRECTION: Passer un objet au lieu de FormData
     const dataToSend = {
       name: event.data.name,
       description: event.data.description,
@@ -129,9 +127,6 @@ function handleModalClose(): void {
   cleanupObjectUrls()
 }
 
-// ========================================
-// Lifecycle
-// ========================================
 onBeforeUnmount(() => cleanupObjectUrls())
 </script>
 

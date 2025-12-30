@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
 import { upperFirst } from 'scule'
-import type { Promotion } from '~/types/promotion'
+import type { Promotion, PromotionType } from '~/types/promotion'
 import type { Table as TanstackTable } from '@tanstack/table-core'
 import {
   getTypeLabel,
@@ -11,8 +11,7 @@ import {
   getStatusLabel,
   getStatusColor,
   formatPromotionValue,
-  formatUsageLimit,
-  getPromotionDaysRemaining
+  formatUsageLimit
 } from '~/utils/promotion'
 
 definePageMeta({
@@ -30,6 +29,10 @@ const UDropdownMenu = resolveComponent('UDropdownMenu')
 
 const toast = useToast()
 
+// Types pour les filtres locaux
+type LocalTypeFilter = 'all' | PromotionType
+type LocalStatusFilter = 'all' | 'active' | 'inactive' | 'expired' | 'upcoming'
+
 const {
   promotions,
   loading,
@@ -46,13 +49,13 @@ const {
   resetFilters
 } = usePromotions()
 
-// États locaux
+// États locaux avec types corrects
 const table = useTemplateRef<{ tableApi: TanstackTable<Promotion> }>('table')
 const rowSelection = ref<Record<string, boolean>>({})
 
 const localSearch = ref<string>(filters.value.search || '')
-const localType = ref<string>('all')
-const localStatus = ref<string>('all')
+const localType = ref<LocalTypeFilter>('all')
+const localStatus = ref<LocalStatusFilter>('all')
 const showTrashed = ref<boolean>(filters.value.only_trashed || false)
 
 // Modales
@@ -62,14 +65,14 @@ const promotionToEdit = ref<Promotion | null>(null)
 const idsToDelete = ref<string[]>([])
 
 // Labels
-const typeLabels: Record<string, string> = {
+const typeLabels: Record<LocalTypeFilter, string> = {
   all: 'Tous les types',
   percentage: 'Pourcentage',
-  fixed: 'Montant fixe',
+  fixed_amount: 'Montant fixe',
   buy_x_get_y: 'Achetez X obtenez Y'
 }
 
-const statusLabels: Record<string, string> = {
+const statusLabels: Record<LocalStatusFilter, string> = {
   all: 'Tous les statuts',
   active: 'Actives',
   inactive: 'Inactives',
@@ -310,7 +313,7 @@ const visibleColumns = computed(() =>
   table.value?.tableApi?.getAllColumns().filter(c => c.getCanHide()) || []
 )
 
-// Watchers
+// Watchers avec casting explicite
 watchDebounced(
   localSearch,
   (val) => {
@@ -321,8 +324,18 @@ watchDebounced(
   { debounce: 400 }
 )
 
-watch(localType, (val) => setType(val))
-watch(localStatus, (val) => setStatus(val))
+watch(localType, (val: LocalTypeFilter) => {
+  if (val === 'all') {
+    setType('all')
+  } else {
+    setType(val as PromotionType)
+  }
+})
+
+watch(localStatus, (val: LocalStatusFilter) => {
+  setStatus(val)
+})
+
 watch(showTrashed, (val) => setTrashedFilter(false, val))
 
 onMounted(() => {
@@ -366,7 +379,7 @@ onMounted(() => {
 
           <USelectMenu
             v-model="localType"
-            :items="Object.entries(typeLabels).map(([v, l]) => ({ label: l, value: v }))"
+            :items="Object.entries(typeLabels).map(([v, l]) => ({ label: l, value: v as LocalTypeFilter }))"
             value-key="value"
             label-key="label"
             class="w-52"
@@ -374,7 +387,7 @@ onMounted(() => {
 
           <USelectMenu
             v-model="localStatus"
-            :items="Object.entries(statusLabels).map(([v, l]) => ({ label: l, value: v }))"
+            :items="Object.entries(statusLabels).map(([v, l]) => ({ label: l, value: v as LocalStatusFilter }))"
             value-key="value"
             label-key="label"
             class="w-48"

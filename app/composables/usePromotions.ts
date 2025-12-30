@@ -10,6 +10,10 @@ import type {
 } from "~/types/promotion";
 import type { ValidationErrors, ApiErrorResponse } from "~/types/validation";
 
+// Types stricts pour les filtres
+type FilterStatus = "all" | "active" | "inactive" | "expired" | "upcoming";
+type FilterType = "all" | PromotionType;
+
 export const usePromotions = () => {
   const client = useSanctumClient();
   const toast = useToast();
@@ -31,16 +35,6 @@ export const usePromotions = () => {
     total: 0,
     totalPages: 0,
   }));
-
-  // Définition des types pour les filtres
-  type FilterStatus =
-    | "all"
-    | "active"
-    | "inactive"
-    | "expired"
-    | "upcoming"
-    | undefined;
-  type FilterType = "all" | PromotionType | undefined;
 
   const filters = useState<PromotionFilters>("promotions:filters", () => ({
     search: "",
@@ -68,9 +62,6 @@ export const usePromotions = () => {
   // UTILITAIRES D'ERREUR
   // ============================================================================
 
-  /**
-   * Obtient le message d'erreur d'une exception
-   */
   function getErrorMessage(error: unknown): string {
     if (error instanceof Error) {
       return error.message;
@@ -78,17 +69,11 @@ export const usePromotions = () => {
     return "Une erreur inconnue est survenue";
   }
 
-  /**
-   * Obtient le message d'erreur de l'API
-   */
   function getApiErrorMessage(error: unknown): string {
     const apiError = error as ApiErrorResponse;
     return apiError.response?._data?.message || getErrorMessage(error);
   }
 
-  /**
-   * Obtient les erreurs de validation de l'API
-   */
   function getValidationErrors(error: unknown): ValidationErrors | null {
     const apiError = error as ApiErrorResponse;
     return apiError.response?._data?.errors || null;

@@ -44,8 +44,8 @@ const table = useTemplateRef<{ tableApi: TanstackTable<Collection> }>('table')
 const rowSelection = ref<Record<string, boolean>>({})
 
 // Filtres UI locaux
-const localSearch = ref<string>(state.value.filters.search || '')
-const localStatus = ref<boolean | 'all'>(state.value.filters.is_active || 'all')
+const localSearch = ref<string>(state.value?.filters?.search || '')
+const localStatus = ref<boolean | 'all'>(state.value?.filters?.is_active || 'all')
 
 // Modales
 const isCreateModalOpen = ref(false)
@@ -260,7 +260,7 @@ const selectedIds = computed(() => {
 })
 
 const currentPage = computed({
-  get: () => state.value.pagination?.current_page || 1,
+  get: () => state.value?.pagination?.current_page || 1,
   set: (val) => setPage(val)
 })
 
@@ -295,7 +295,7 @@ onMounted(() => {
     <template #header>
       <UDashboardNavbar
         title="Collections"
-        :badge="state.pagination?.total || 0"
+        :badge="state?.pagination?.total || 0"
       >
         <template #right>
           <UButton
@@ -356,7 +356,7 @@ onMounted(() => {
             leave-active-class="transition duration-150"
             leave-to-class="opacity-0 translate-y-1"
           >
-            <div v-if="selectedIds.length > 0" class="flex items-center gap-2">
+            <div v-if="selectedIds && selectedIds.length > 0" class="flex items-center gap-2">
               <UButton
                 color="error"
                 variant="soft"
@@ -391,7 +391,7 @@ onMounted(() => {
         <UTable
           ref="table"
           v-model:row-selection="rowSelection"
-          :data="[...state.collections]"
+          :data="state?.collections || []"
           :columns="columns"
           :loading="isLoading"
           class="flex-1"
@@ -441,12 +441,12 @@ onMounted(() => {
       <!-- Pagination -->
       <div class="flex items-center justify-between mt-4 border-t border-gray-200 dark:border-gray-800 pt-4">
         <span class="text-sm text-gray-500">
-          Total : <span class="font-medium text-gray-900 dark:text-white">{{ state.pagination?.total }}</span> collection(s)
+          Total : <span class="font-medium text-gray-900 dark:text-white">{{ state?.pagination?.total }}</span> collection(s)
         </span>
         <UPagination
           v-model:page="currentPage"
-          :total="state.pagination?.total"
-          :items-per-page="state.pagination?.per_page"
+          :total="state?.pagination?.total"
+          :items-per-page="state?.pagination?.per_page"
         />
       </div>
     </template>

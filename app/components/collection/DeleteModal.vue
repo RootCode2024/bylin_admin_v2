@@ -1,27 +1,16 @@
 <script setup lang="ts">
-/**
- * Composant de suppression de collection(s)
- *
- * Modal de confirmation pour supprimer une ou plusieurs collections
- * Gère la suppression soft delete, restauration et suppression définitive
- */
-
-// Props du composant
 const props = defineProps<{
   open: boolean
   collectionIds: string[]
 }>()
 
-// Événements émis par le composant
 const emit = defineEmits<{
   'update:open': [boolean]
   'deleted': []
 }>()
 
-// Composables
 const { deleteCollections, state } = useCollections()
 
-// État du modal (v-model)
 const isOpen = computed({
   get: () => props.open,
   set: (value) => emit('update:open', value)
@@ -29,23 +18,14 @@ const isOpen = computed({
 
 const isDeleting = ref(false)
 
-/**
- * Collections sélectionnées
- */
 const selectedCollections = computed(() => {
   return state.value.collections.filter(c => props.collectionIds.includes(c.id))
 })
 
-/**
- * Vérifie si des collections ont des produits
- */
 const hasProducts = computed(() => {
   return selectedCollections.value.some(c => c.products_count > 0)
 })
 
-/**
- * Message d'avertissement si la collection a des produits
- */
 const warningMessage = computed(() => {
   if (!hasProducts.value) return null
 
@@ -54,17 +34,11 @@ const warningMessage = computed(() => {
   return `Attention : ${totalProducts} produit${totalProducts > 1 ? 's' : ''} ${totalProducts > 1 ? 'sont associés' : 'est associé'} à ${props.collectionIds.length > 1 ? 'ces collections' : 'cette collection'}. ${totalProducts > 1 ? 'Ils' : 'Il'} ne seront pas supprimés mais ne seront plus dans aucune collection.`
 })
 
-/**
- * Texte du bouton
- */
 const buttonLabel = computed(() => {
   const count = props.collectionIds.length
   return count > 1 ? `Supprimer ${count} collections` : 'Supprimer'
 })
 
-/**
- * Gère la suppression
- */
 async function handleDelete(): Promise<void> {
   isDeleting.value = true
 
@@ -80,9 +54,6 @@ async function handleDelete(): Promise<void> {
   }
 }
 
-/**
- * Annule la suppression
- */
 function handleCancel() {
   isOpen.value = false
 }

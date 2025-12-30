@@ -1,11 +1,4 @@
 <script setup lang="ts">
-/**
- * Composant réutilisable de dialogue de confirmation
- *
- * Affiche un modal stylé pour confirmer une action
- * Supporte différents variants (danger, warning, info)
- */
-
 interface Props {
   open: boolean
   title?: string
