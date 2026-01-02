@@ -24,7 +24,7 @@ const user = computed(() => {
     name: realUser?.name || 'Utilisateur',
     email: realUser?.email || '',
     avatar: {
-      src: realUser?.avatar || 'https://github.com/benjamincanac.png',
+      src: realUser?.avatar_url || undefined,
       alt: realUser?.name || 'User'
     }
   }
@@ -43,10 +43,6 @@ const items = computed<DropdownMenuItem[][]>(() => ([
   [{
     label: 'Mon Profil',
     icon: 'i-lucide-user',
-    to: '/settings/profile'
-  }, {
-    label: 'Paramètres',
-    icon: 'i-lucide-settings',
     to: '/settings'
   }],
   [{

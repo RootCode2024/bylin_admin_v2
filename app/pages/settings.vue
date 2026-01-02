@@ -2,34 +2,25 @@
 import type { NavigationMenuItem } from '@nuxt/ui'
 
 const links = [[{
-  label: 'General',
+  label: 'Général',
   icon: 'i-lucide-user',
   to: '/settings',
   exact: true
 }, {
-  label: 'Members',
+  label: 'Membres',
   icon: 'i-lucide-users',
   to: '/settings/members'
 }, {
-  label: 'Notifications',
-  icon: 'i-lucide-bell',
-  to: '/settings/notifications'
-}, {
-  label: 'Security',
+  label: 'Securité',
   icon: 'i-lucide-shield',
   to: '/settings/security'
-}], [{
-  label: 'Documentation',
-  icon: 'i-lucide-book-open',
-  to: 'https://ui.nuxt.com/docs/getting-started/installation/nuxt',
-  target: '_blank'
 }]] satisfies NavigationMenuItem[][]
 </script>
 
 <template>
   <UDashboardPanel id="settings" :ui="{ body: 'lg:py-12' }">
     <template #header>
-      <UDashboardNavbar title="Settings">
+      <UDashboardNavbar title="Paramètres">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
@@ -42,7 +33,7 @@ const links = [[{
     </template>
 
     <template #body>
-      <div class="flex flex-col gap-4 sm:gap-6 lg:gap-12 w-full lg:max-w-2xl mx-auto">
+      <div class="flex flex-col gap-4 sm:gap-6 lg:gap-12 w-full mx-auto">
         <NuxtPage />
       </div>
     </template>

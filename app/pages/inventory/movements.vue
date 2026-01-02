@@ -55,9 +55,9 @@ const localFilters = reactive<InventoryMovementFilters>({
 // ========================================
 const typeOptions = [
   { label: 'Tous', value: undefined },
-  { label: 'Entrée', value: 'in' },
-  { label: 'Sortie', value: 'out' },
-  { label: 'Ajustement', value: 'adjustment' }
+  { label: 'Entrée', value: 'add' },
+  { label: 'Sortie', value: 'sub' },
+  { label: 'Ajustement', value: 'set' }
 ]
 
 const reasonOptions = [

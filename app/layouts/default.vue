@@ -37,6 +37,13 @@ const links = computed(() => {
         onSelect: closeMenu
       }),
       createNavigationItem({
+        label: 'Précommandes',
+        icon: 'i-lucide-shopping-bag',
+        to: '/products/preorders',
+        badge: stats.value.orders > 0 ? stats.value.orders.toString() : undefined,
+        onSelect: closeMenu
+      }),
+      createNavigationItem({
         label: 'Clients',
         icon: 'i-lucide-users',
         to: '/customers',
@@ -84,16 +91,6 @@ const links = computed(() => {
             to: '/products/attributes',
             badge: stats.value.attributes > 0 ? stats.value.attributes.toString() : undefined,
             onSelect: closeMenu
-          }),
-          createNavigationItem({
-            label: 'Authenticité & QR',
-            to: '/products/authenticity',
-            onSelect: closeMenu
-          }),
-          createNavigationItem({
-            label: 'Précommandes',
-            to: '/products/preorders',
-            onSelect: closeMenu
           })
         ]
       }),
@@ -110,11 +107,6 @@ const links = computed(() => {
           createNavigationItem({
             label: 'Mouvements',
             to: '/inventory/movements',
-            onSelect: closeMenu
-          }),
-          createNavigationItem({
-            label: 'Stock faible',
-            to: '/inventory/low-stock',
             onSelect: closeMenu
           })
         ]

@@ -1,12 +1,48 @@
 import { defineStore } from "pinia";
+import type { Permission } from "~/types/setting";
 
-export interface User {
+export type UserStatus = "active" | "inactive" | "suspended" | "banned";
+
+export interface UserRole {
   id: number;
   name: string;
+  guard_name: string;
+  permissions?: Permission[];
+  pivot?: {
+    model_id: string;
+    model_type: string;
+    role_id: number;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+export interface User {
+  id: string; // UUID
+  name: string;
   email: string;
-  roles?: string[];
-  avatar?: string;
-  avatar_url?: string;
+  phone?: string | null;
+  bio?: string | null;
+  status: UserStatus;
+
+  // Avatar
+  avatar?: string | null;
+  avatar_url?: string | null;
+
+  // Spatie Permissions
+  roles?: UserRole[];
+  permissions?: Permission[];
+
+  // Timestamps
+  email_verified_at?: string | null;
+  last_login_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+
+  // Relations
+  invited_by_id?: string | null;
+  invited_at?: string | null;
 }
 
 interface LoginCredentials extends Record<string, unknown> {
@@ -25,8 +61,11 @@ export const useAuthStore = defineStore("auth", () => {
   const loading = ref(false);
 
   // Getters
-  const user = computed(() => sanctumUser.value as User | null);
-  const isAuthenticated = computed(() => !!sanctumUser.value);
+  const user = computed(() => {
+    return sanctumUser.value as User | null;
+  });
+
+  const isAuthenticated = computed(() => !!user.value);
 
   // Actions
   async function login(credentials: LoginCredentials) {
